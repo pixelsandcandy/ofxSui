@@ -1,1 +1,1 @@
-# ofxSui
+# ✨ Simple UI System for openFrameworks ✨
