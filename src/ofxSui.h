@@ -22,6 +22,185 @@ namespace SUI {
     
     void LiveReload(bool reload = true);
     
+    
+    //========================================================================================================
+    //========================================================================================================
+    
+    static string CleanSelector(string selector){
+        selector = ofJoinString(ofSplitString(selector,"("), "");
+        selector = ofJoinString(ofSplitString(selector,")"), "");
+        selector = ofJoinString(ofSplitString(selector,"["), "");
+        selector = ofJoinString(ofSplitString(selector,"]"), "");
+        return selector;
+    }
+    
+    static vector<string> GetStyles(vector<string> lines){
+        vector <string> styleLines;
+        
+        string selector;
+        bool blockOpen = false;
+        bool commentOpen = false;
+        
+        int blockOpenCount = 0;
+        int commentOpenCount = 0;
+        
+        for (auto line : lines){
+            
+            string l = ofJoinString(ofSplitString(line," "), "");
+            l = ofJoinString(ofSplitString(l,"\n"), "");
+            l = ofJoinString(ofSplitString(l,"\t"), "");
+            
+            // skip comments
+            if ( line.find("//") == 0 ) continue;
+            if ( !commentOpen ) {
+                if ( line.find("/*") == 0 ) {
+                    commentOpen = true;
+                    commentOpenCount = 1;
+                    continue;
+                }
+            } else {
+                if ( line.find("*/") != string::npos ){
+                    commentOpenCount--;
+                    
+                    if ( commentOpenCount == 0 ){
+                        commentOpen = false;
+                    }
+                    
+                    continue;
+                } else if ( line.find("/*") != string::npos ){
+                    commentOpenCount++;
+                    continue;
+                }
+            }
+            
+            //
+            if ( !blockOpen ){
+                if ( l.find("{") != string::npos && l.find("}") == string::npos ){
+                    selector = l.substr(0, l.find("{"));
+                    selector = ofJoinString(ofSplitString(selector,"("), "");
+                    blockOpen = true;
+                    blockOpenCount = 1;
+                } else {
+                    styleLines.push_back(l);
+                }
+            } else {
+                if ( l.find("{") != string::npos && l.find("}") != string::npos ){
+                } else if ( l.find("{") != string::npos ){
+                    blockOpenCount++;
+                } else if ( l.find("}") != string::npos ){
+                    blockOpenCount--;
+                    if ( blockOpenCount == 0 ){
+                        blockOpen = false;
+                    } else {
+                        //strLines.push_back(l);
+                    }
+                } else {
+                    //strLines.push_back(l);
+                }
+            }
+        }
+        
+        return styleLines;
+    };
+    
+    static map<string, vector<string>> GetBlocks(vector<string> lines){
+        map<string, vector<string>> blocks;
+        vector <string> strLines;
+        
+        string selector;
+        bool blockOpen = false;
+        bool commentOpen = false;
+        
+        int blockOpenCount = 0;
+        int commentOpenCount = 0;
+        
+        for (auto line : lines){
+            
+            string l = ofJoinString(ofSplitString(line," "), "");
+            l = ofJoinString(ofSplitString(l,"\n"), "");
+            l = ofJoinString(ofSplitString(l,"\t"), "");
+            
+            //string l = line;
+            
+            //ofLog() << "––– " << l;
+            
+            // skip comments
+            if ( line.find("//") == 0 ) continue;
+            if ( !commentOpen ) {
+                if ( line.find("/*") == 0 ) {
+                    commentOpen = true;
+                    commentOpenCount = 1;
+                    continue;
+                }
+            } else {
+                if ( line.find("*/") != string::npos ){
+                    commentOpenCount--;
+                    
+                    if ( commentOpenCount == 0 ){
+                        commentOpen = false;
+                    }
+                    
+                    continue;
+                } else if ( line.find("/*") != string::npos ){
+                    commentOpenCount++;
+                    continue;
+                }
+            }
+            
+            //
+            
+            if ( !blockOpen ){
+                if ( l.find("{") != string::npos && l.find("}") == string::npos ){
+                    selector = l.substr(0, l.find("{"));
+                    blockOpen = true;
+                    blockOpenCount = 1;
+                    strLines = vector<string>();
+                    //ofLog() << "+++ BLOCK OPEN +++";
+                }
+            } else {
+                
+                
+                if ( l.find("{") != string::npos && l.find("}") != string::npos ){
+                    strLines.push_back(l);
+                } else if ( l.find("{") != string::npos ){
+                    strLines.push_back(l);
+                    //ofLog() << blockOpenCount << "++";
+                    blockOpenCount++;
+                } else if ( l.find("}") != string::npos ){
+                    //ofLog() << blockOpenCount << "--";
+                    blockOpenCount--;
+                    if ( blockOpenCount == 0 ){
+                        //ofLog() << "--- BLOCK CLOSED ---";
+                        
+                        blocks[selector] = vector<string>(strLines);
+                        ofLog() << "[Block] " << selector << "    lines:" << blocks[selector].size();
+                        ofLog() << ofJoinString(blocks[selector], "\n");
+                        blockOpen = false;
+                        
+                    } else {
+                        strLines.push_back(l);
+                    }
+                } else {
+                    strLines.push_back(l);
+                }
+            }
+        }
+        
+        return blocks;
+    };
+    
+    
+    static map<string, vector<string>> GetBlocks(ofBuffer buffer){
+        vector<string> lines;
+        for (auto line : buffer.getLines()){
+            lines.push_back(line);
+        }
+        return GetBlocks(lines);
+    }
+    
+    //========================================================================================================
+    //========================================================================================================
+    
     class AnimatableParams {
     public:
         ~AnimatableParams(){};
@@ -47,7 +226,20 @@ namespace SUI {
         vector<string> onStart = vector<string>();
     };
     
-    class Action : public AnimatableParams , public TweenParams{
+    class CustomParams {
+    public:
+        ~CustomParams(){};
+        CustomParams(){};
+        
+        map<string,bool> bools;
+        map<string,string> strings;
+        map<string,int> ints;
+        map<string,float> floats;
+    };
+    
+    
+    
+    class Action : public AnimatableParams, public TweenParams{
     public:
         ~Action(){};
         Action(){};
@@ -164,9 +356,24 @@ namespace SUI {
         ~Style(){};
         Style(){};
         
+        void Copy(Style& copyStyle){
+            backgroundColor = copyStyle.backgroundColor;
+            width = copyStyle.width;
+            height = copyStyle.height;
+        }
+        
+        void DebugLog(){
+            ofLog() << "<<-------------";
+            ofLog() << "background-color: " << ofToString(backgroundColor.getHex());
+            ofLog() << "width: " << width;
+            ofLog() << "height: " << height;
+            
+            ofLog() << "------------->>";
+        }
+        
         ofColor backgroundColor = ofColor::white;
-        float width = 0.0;
-        float height = 0.0;
+        float width = nanf("");
+        float height = nanf("");
         float x = nanf("");
         float y = nanf("");
         vector<string> rawStyles;
@@ -243,8 +450,111 @@ namespace SUI {
             return blocks["[actions]"];
         }
         
+    };
+    
+    class StyleBaseParams: public Style {
+    public:
+        ~StyleBaseParams(){};
+        StyleBaseParams(){};
+        
+        map<int, Style> stateStyles;
+        Style baseStyle;
         
     };
+    
+    class StyleRenderParams {
+    public:
+        ~StyleRenderParams(){};
+        StyleRenderParams(){};
+        
+        int state = 0;
+        
+        Style inlineStyle;
+        Style compiledStyle;
+    };
+    
+    class StyleSheet;
+    class StyleSelector;
+    
+    struct suiStyleSheetArgs;
+    
+    struct suiStyleSelectorArgs;
+    
+    class StyleSelector: public StyleBaseParams {
+    public:
+        ~StyleSelector(){
+            stylesheet = 0;
+            stylesheet = NULL;
+        };
+        StyleSelector(){
+            Style s1;
+            Style s2;
+            stateStyles[1] = s1;
+            stateStyles[2] = s2;
+        };
+        
+        StyleSheet* stylesheet = NULL;
+        map<string, vector<string>> blocks;
+        
+        void Bind(StyleSheet& stylesheet);
+        
+        void ReloadStyle(suiStyleSheetArgs& args);
+        
+        
+        ofEvent<suiStyleSelectorArgs> onUpdate;
+        
+        Style Compile(int state, Style& inlineStyles ){
+            Style style;
+            //baseStyle.DebugLog();
+            style.Copy(baseStyle);
+            style.DebugLog();
+            
+            if ( state > 0 ) {
+                Style& stateStyle = stateStyles[state];
+                
+                if ( !isnan(stateStyle.width) ) style.width = stateStyle.width;
+                if ( !isnan(stateStyle.height) ) style.height = stateStyle.height;
+            }
+            
+            return style;
+        }
+        
+        
+        
+        void ParseBlocks(){
+            ParseStyle( GetStyles(blocks["-render"]) );
+        }
+        
+        void ParseStyle(vector<string> lines){
+            for ( auto line : lines ){
+                //ofLog() << "s << " << s;
+                if ( line.find("{") == string::npos && line.find("}") == string::npos && line != "" ){
+                    vector<string> keyValue = ofSplitString(line, ":");
+                    keyValue[1] = ofJoinString(ofSplitString(keyValue[1],";"), "");
+                    //ofLog() << keyValue[0] << ":" << keyValue[1];
+                    //return;
+                    if ( keyValue[0] == "background-color" ){
+                        if ( keyValue[1].find("#") != string::npos ){
+                            string col = ofJoinString(ofSplitString(keyValue[1],"#"), "");
+                            float floatColor = stoul(col, nullptr, 16);
+                            baseStyle.backgroundColor.setHex(floatColor);
+                        }
+                    } else if ( keyValue[0] == "width" ){
+                        baseStyle.width = ofToInt(keyValue[1]);
+                    } else if ( keyValue[0] == "height" ){
+                        baseStyle.height = ofToInt(keyValue[1]);
+                    } else if ( keyValue[0] == "x" ){
+                        baseStyle.x = ofToInt(keyValue[1]);
+                    } else if ( keyValue[0] == "y" ){
+                        baseStyle.y = ofToInt(keyValue[1]);
+                    }
+                }
+                
+            }
+        }
+    };
+    
+    
     
     class StyleSheet {
     public:
@@ -254,13 +564,9 @@ namespace SUI {
             Load(filepath);
         };
         
-        struct suiStyleSheetArgs {
-            StyleSheet& stylesheet;
-            
-            suiStyleSheetArgs(StyleSheet &stylesheet):stylesheet(stylesheet){}
-        };
         
-        ofEvent<suiStyleSheetArgs> onUpdate;
+        
+        ofEvent<suiStyleSheetArgs> onReload;
         ofBuffer dataBuffer;
         string data;
         time_t fileTime = 0;
@@ -269,13 +575,33 @@ namespace SUI {
         bool liveReloading = false;
         float updateInterval = 1.0;
         map<string, vector<string>> blocks;
+        map<string, StyleSelector*> selectors;
         
         //
         
         void Load(string filepath){
             this->filepath = filepath;
             ofBuffer buffer = ofBufferFromFile(ofToDataPath(filepath), false);
-            ParseBlocks(buffer);
+            blocks = GetBlocks(buffer);
+            
+            
+            for (auto it=blocks.begin(); it!=blocks.end(); ++it){
+                if ( it->first != "[global]" && it->first != "[elements]" ){
+                    if ( selectors.count(it->first) ){
+                        selectors[it->first]->blocks = GetBlocks(it->second);
+                        selectors[it->first]->ParseBlocks();
+                        //selectors[it->first]
+                        ofLog() << "reload! " << ofRandomf();
+                    } else {
+                        StyleSelector* ss = new StyleSelector();
+                        ss->Bind(*this);
+                        ss->blocks = GetBlocks(it->second);
+                        ss->ParseBlocks();
+                        selectors[it->first] = ss;
+                    }
+                    
+                }
+            }
             
             //data = dataBuffer.getText();
             
@@ -295,163 +621,79 @@ namespace SUI {
             fileTime = std::filesystem::last_write_time(ofToDataPath(filepath));
         }
         
+        StyleSelector& GetSelector(string selector){
+            return *selectors[selector];
+        }
+        
+        bool HasSelector(string selector){
+            return selectors.count(selector);
+        }
         
         
-        Style GetStyle(string selector){
-            vector<string> styles;
-            Style style;
+        vector<string> SelectBlock(string selector){
+            vector<string> vecStr;
             
             for (auto it=blocks.begin(); it!=blocks.end(); ++it){
                 if ( it->first == selector ){
-                    style.Parse(it->second);
+                    return it->second;
                 }
             }
             
-            /*string block;
-            int startpos = data.find(selector);
-            if ( startpos != string::npos ){
-                block = data.substr(startpos+selector.length());
-                int endpos = block.find("}");
-                
-                if ( endpos != string::npos ){
-                    block = block.substr(1,endpos-1);
-                }
-            }*/
-            
-            //ofLog() << block;
-            
-            //styles = ofSplitString(block, ";");
-            
-            
-            return style;
+            return vecStr;
         }
         
         //
         
     private:
         
-        void ParseBlocks(ofBuffer buffer){
-            vector <string> strLines;
-            string selector;
-            bool blockOpen = false;
-            int openCount = 0;
-            
-            for (auto line : buffer.getLines()){
-                string l = ofJoinString(ofSplitString(line," "), "");
-                l = ofJoinString(ofSplitString(l,"\n"), "");
-                l = ofJoinString(ofSplitString(l,"\t"), "");
-                //strLines.push_back(l);
-                
-                if ( !blockOpen ){
-                    
-                    if ( l.find("{") != string::npos ){
-                        selector = l.substr(0, l.find("{"));
-                        blockOpen = true;
-                        openCount = 1;
-                        strLines = vector<string>();
-                    }
-                    
-                    /*if ( l.find("]{") != string::npos ){
-                        selector = l.substr(0, l.find("{"));
-                        blockOpen = true;
-                        openCount = 1;
-                        strLines.empty();
-                    } else if ( l.find("]:{") != string::npos ){
-                        selector = l.substr(0, l.find(":"));
-                        blockOpen = true;
-                        openCount = 1;
-                        strLines.empty();
-                    } else if ( l.find("&:") != string::npos && l.find("{") != string::npos){
-                        selector = l.substr(0, l.find("{"));
-                        blockOpen = true;
-                        openCount = 1;
-                        strLines.empty();
-                    } else if ( l.find("&:") != string::npos && l.find("{") != string::npos){
-                        selector = l.substr(0, l.find("{"));
-                        blockOpen = true;
-                        openCount = 1;
-                        strLines.empty();
-                    } else if ( l.find("{") != string::npos ){
-                        selector = l.substr(0, l.find("{"));
-                        blockOpen = true;
-                        openCount = 1;
-                        strLines.empty();
-                    }*/
-                } else {
-                    strLines.push_back(l);
-                    
-                    if ( l.find("{") != string::npos ){
-                        openCount++;
-                    } else if ( l.find("}") != string::npos ){
-                        openCount--;
-                        if ( openCount == 0 ){
-                            blocks[selector] = vector<string>(strLines);
-                            ofLog() << "StyleSheet|Block: " << selector << "  lines:" << blocks[selector].size();
-                            ofLog() << ofJoinString(blocks[selector], " ");
-                            blockOpen = false;
-                        }
-                    }
-                }
-            }
-        }
-        
         void UpdateHandler(ofEventArgs & args){
             UpdateHandler();
         }
         
-        void UpdateHandler(){
-             //std::filesystem::last_write_time(ofToDataPath(it.second));
-            
-            if ( ofGetElapsedTimef() < nextUpdateTime ){
-                nextUpdateTime = ofGetElapsedTimef() + updateInterval;
-                time_t t = std::filesystem::last_write_time(ofToDataPath(this->filepath));
-                if ( t > fileTime ){
-                    fileTime = t;
-                    Load(filepath);
-                    suiStyleSheetArgs args(*this);
-                    
-                    ofNotifyEvent(onUpdate, args, this);
-                };
-            }
-            
-        }
+        void UpdateHandler();
         
         
         string filepath;
     };
     
+    struct suiStyleSheetArgs {
+        StyleSheet& stylesheet;
+        
+        suiStyleSheetArgs(StyleSheet &stylesheet):stylesheet(stylesheet){}
+    };
     
-    class Element : public AnimatableParams {
+    class Element : public AnimatableParams, public StyleRenderParams {
     public:
         ~Element(){
             //stylesheet = 0;
             //delete stylesheet;
         };
-        Element(){};
-        Element(string id){
+        
+        Element(StyleSelector& styleSelector, string id = ""):styleSelector(styleSelector){
             this->id = id;
-            SUI::Style s;
-            styles[0] = s;
+            ofAddListener(styleSelector.onUpdate, this, &Element::UpdateStyle);
+            
+            UpdateStyle();
         }
         
         string id;
         string selector;
         
-        int state = 0;
-        map<int, Style> styles;
         Actions actions;
+        CustomParams customParams;
+        StyleSelector& styleSelector;
         
         //
         
-        Element& Style(string selector, StyleSheet& stylesheet){
+        /*Element& Style(string selector, StyleSheet& stylesheet, string id = ""){
             this->selector = selector;
-            ParseStyle(stylesheet.GetStyle(selector));
-            ParseActions(styles[state]);
+            //ParseStyle(stylesheet.SelectBlock(selector));
+            //ParseActions(stateStyles[state]);
             //ofLog() << styles[state].width << "x" << styles[state].height;
-            ofAddListener(stylesheet.onUpdate, this, &Element::UpdateStyle);
+            
             
             return *this;
-        }
+        }*/
         
         Element& SetPosition(float x, float y, float z = 0.0){
             position = glm::vec3(x, y, z);
@@ -463,27 +705,39 @@ namespace SUI {
             return *this;
         }
         
+        void UpdateStyle(){
+            compiledStyle = styleSelector.Compile(state, inlineStyle);
+        }
+        
         void Draw(float x = 0.0, float y = 0.0){
-            ofSetColor( styles[state].backgroundColor );
+            //compiledStyle.DebugLog();
+            
+            ofSetColor( compiledStyle.backgroundColor );
             ofPushView();
             ofTranslate(position.x, position.y);
-            ofDrawRectangle(0, 0, styles[state].width, styles[state].height);
+            ofDrawRectangle(0, 0, compiledStyle.width, compiledStyle.height);
             ofPopView();
         }
         
     private:
+        void UpdateStyle(suiStyleSelectorArgs& args){
+            UpdateStyle();
+        }
         
-        void UpdateStyle(StyleSheet::suiStyleSheetArgs& args){
-            ParseStyle(args.stylesheet.GetStyle(selector));
-            ParseActions(styles[state]);
+        void ReloadStyle(suiStyleSheetArgs& args){
+            //ParseStyle(args.stylesheet.SelectBlock(selector));
+            //ParseActions(stateStyles[state]);
             //ofLog() << styles[state].width << "x" << styles[state].height;
         }
         
-        void ParseStyle(SUI::Style style){
-            styles[state] = style;
-            if ( !isnan(style.x) ) position.x = style.x;
-            if ( !isnan(style.y) ) position.y = style.y;
+        void ParseStyle(vector<string> block){
+            //stateStyles[state] = style;
+            
+            //if ( !isnan(style.x) ) position.x = style.x;
+            //if ( !isnan(style.y) ) position.y = style.y;
         }
+        
+        
         
         void ParseActions(SUI::Style style){
             actions.Parse(style.GetRawActions());
@@ -494,14 +748,32 @@ namespace SUI {
     
     class Window {
     public:
-        ~Window(){};
+        ~Window(){
+            stylesheet = 0;
+            stylesheet = NULL;
+        };
         Window(){};
         
         //
         
-        vector<Element> elements;
+        vector<Element*> elements;
+        StyleSheet* stylesheet = NULL;
+        map<string, vector<string>> blocks;
         
-        Element& AddElement(){
+        bool ElementExists(string id){
+            for (auto element : elements ){
+                if ( element->id == id ) return true;
+            }
+            return false;
+        }
+        
+        Element& GetElementById(string id){
+            for (auto element : elements ){
+                if ( element->id == id ) return *element;
+            }
+        }
+        
+        /*Element& AddElement(){
             Element el;
             elements.push_back(el);
             return elements.back();
@@ -511,6 +783,21 @@ namespace SUI {
             Element el(id);
             elements.push_back(el);
             return elements.back();
+        }*/
+        
+        Element& AddElement(StyleSheet& stylesheet, string selector, string id = ""){
+            if ( !stylesheet.HasSelector(selector) ) return;
+            Element* el = new Element(stylesheet.GetSelector(selector), id );
+            elements.push_back(el);
+            return *elements.back();
+        }
+        
+        Element& AddElement(string selector, string id = ""){
+            ofLog() << "[Add Element] " << selector;
+            if ( !stylesheet->HasSelector(selector) ) return;
+            Element* el = new Element(stylesheet->GetSelector(selector), id );
+            elements.push_back(el);
+            return *elements.back();
         }
         
         //
@@ -522,11 +809,55 @@ namespace SUI {
         
         void Render(){};
         
+        void Load(string filepath){
+            stylesheet = new StyleSheet();
+            stylesheet->Load(filepath);
+            
+            ofAddListener(stylesheet->onReload, this, &Window::ReloadElements);
+            
+            MakeElements();
+        };
+        
+        void MakeElements(){
+            blocks = GetBlocks(stylesheet->SelectBlock("[elements]"));
+            
+            for (auto it=blocks.begin(); it!=blocks.end(); ++it){
+                string selector = CleanSelector(it->first);
+                vector<string> nameSelector = ofSplitString(selector, ":");
+                
+                vector<string> styles = GetStyles(it->second);
+                
+                
+                
+                if ( ElementExists(nameSelector[0]) ) {
+                    Element& el = GetElementById(nameSelector[0]);
+                    for (auto style : styles){
+                        vector<string> keyValue = ofSplitString(style, ":");
+                        if ( keyValue[0] == "x" ) el.position.x = ofToInt(keyValue[1]);
+                        else if ( keyValue[0] == "y" ) el.position.y = ofToInt(keyValue[1]);
+                    }
+                    continue;
+                }
+                if ( !stylesheet->HasSelector(nameSelector[1]) ) continue;
+                
+                Element& el = AddElement(nameSelector[1], nameSelector[0]);
+                for (auto style : styles){
+                    vector<string> keyValue = ofSplitString(style, ":");
+                    if ( keyValue[0] == "x" ) el.position.x = ofToInt(keyValue[1]);
+                    else if ( keyValue[0] == "y" ) el.position.y = ofToInt(keyValue[1]);
+                }
+            }
+        }
+        
         void Draw(){
             for (auto element : elements ){
-                element.Draw();
+                element->Draw();
             }
         };
+        
+        void ReloadElements(suiStyleSheetArgs& args){
+            MakeElements();
+        }
         
         
         
