@@ -2,6 +2,7 @@
 
 namespace SUI {
     Settings settings;
+    map<string, ofImage*> images;
     
     void LiveReload(bool reload){
         settings.liveReload = reload;
