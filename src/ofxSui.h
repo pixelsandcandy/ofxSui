@@ -469,6 +469,8 @@ namespace SUI {
             height = copyStyle.height;
             backgroundSizeX = copyStyle.backgroundSizeX;
             backgroundSizeY = copyStyle.backgroundSizeY;
+            opacity = copyStyle.opacity;
+            rotation = copyStyle.rotation;
             x = copyStyle.x;
             y = copyStyle.x;
             anchorPoint = copyStyle.anchorPoint;
@@ -489,6 +491,7 @@ namespace SUI {
             overflow = "auto";
             backgroundColor = ofColor::white;
             backgroundImage = "";
+            hasBackgroundColor = false;
         }
         
         void ResetBase(){
@@ -511,7 +514,8 @@ namespace SUI {
             height = 0;
             x = 0;
             y = 0;
-            
+            opacity = 1.0;
+            rotation = 0.0;
             anchorPoint = ANCHOR_LEFT_TOP;
             overflow = "auto";
             backgroundColor = ofColor::white;
@@ -541,6 +545,51 @@ namespace SUI {
             backgroundColor.setHex(floatColor);
             hasBackgroundColor = true;
         }
+        
+        void MergeStyles(Style& style, bool force = false ){
+            if ( !force ) {
+                if ( isnan(x) ) x = style.x;
+                if ( isnan(y) ) y = style.y;
+                if ( isnan(rotation) ) rotation = style.rotation;
+                if ( isnan(opacity) ) opacity = style.opacity;
+                if ( isnan(width) ) width = style.width;
+                if ( isnan(height) ) height = style.height;
+                if ( isnan(backgroundSizeX) ) backgroundSizeX = style.backgroundSizeX;
+                if ( isnan(backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
+                if ( backgroundImage == "" && style.backgroundImage != "" ) {
+                    backgroundImage = style.backgroundImage;
+                    if ( SUI::images.count(backgroundImage) == 0 ) SUI::images[backgroundImage] = new ofImage();
+                    SUI::images[backgroundImage]->load(ofToDataPath(backgroundImage));
+                }
+                if ( overflow == "" ) overflow = style.overflow;
+                if ( isnan(anchorPoint) ) anchorPoint = style.anchorPoint;
+                if ( !hasBackgroundColor && style.hasBackgroundColor ) {
+                    backgroundColor = style.backgroundColor;
+                    hasBackgroundColor = true;
+                }
+            } else {
+                if ( !isnan(style.x) ) x = style.x;
+                if ( !isnan(style.y) ) y = style.y;
+                if ( !isnan(style.rotation) ) rotation = style.rotation;
+                if ( !isnan(style.opacity) ) opacity = style.opacity;
+                if ( !isnan(style.width) ) width = style.width;
+                if ( !isnan(style.height) ) height = style.height;
+                if ( !isnan(style.backgroundSizeX) ) backgroundSizeX = style.backgroundSizeX;
+                if ( !isnan(style.backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
+                if ( style.backgroundImage != "" ) {
+                    backgroundImage = style.backgroundImage;
+                    if ( SUI::images.count(backgroundImage) == 0 ) SUI::images[backgroundImage] = new ofImage();
+                    SUI::images[backgroundImage]->load(ofToDataPath(backgroundImage));
+                }
+                if ( style.overflow != "" ) overflow = style.overflow;
+                if ( !isnan(style.anchorPoint) ) anchorPoint = style.anchorPoint;
+                if ( style.hasBackgroundColor ) {
+                    backgroundColor = style.backgroundColor;
+                    hasBackgroundColor = true;
+                }
+            }
+            
+        };
         
         
         bool hasBackgroundColor = false;
@@ -603,6 +652,10 @@ namespace SUI {
                         style.anchorPoint = ANCHOR_CENTER_BOTTOM;
                     }
                     
+                } else if ( keyValue[0] == "opacity" ){
+                    style.opacity = ofToFloat(keyValue[1]);
+                } else if ( keyValue[0] == "rotation" ){
+                    style.rotation = ofToFloat(keyValue[1]);
                 } else if ( keyValue[0] == "width" ){
                     style.width = ofToInt(keyValue[1]);
                 } else if ( keyValue[0] == "height" ){
@@ -702,7 +755,7 @@ namespace SUI {
         
         ofEvent<suiStyleSelectorArgs> onUpdate;
         
-        Style Compile(int state, Style& inlineStyle ){
+        Style Compile(int state ){
             Style style;
             //baseStyle.DebugLog();
             style.Copy(baseStyle);
@@ -713,6 +766,8 @@ namespace SUI {
                 
                 if ( !isnan(stateStyle.width) ) style.width = stateStyle.width;
                 if ( !isnan(stateStyle.height) ) style.height = stateStyle.height;
+                if ( !isnan(stateStyle.opacity) ) style.opacity = stateStyle.opacity;
+                if ( !isnan(stateStyle.rotation) ) style.rotation = stateStyle.rotation;
                 if ( !isnan(stateStyle.backgroundSizeX) ) style.backgroundSizeX = stateStyle.backgroundSizeX;
                 if ( !isnan(stateStyle.backgroundSizeY) ) style.backgroundSizeY = stateStyle.backgroundSizeY;
                 if ( stateStyle.backgroundImage != "" ) style.backgroundImage = stateStyle.backgroundImage;
@@ -841,6 +896,8 @@ namespace SUI {
         suiStyleSheetArgs(StyleSheet &stylesheet):stylesheet(stylesheet){}
     };
     
+    
+    
     class Element : public StyleRenderParams, public Style {
     public:
         ~Element(){
@@ -861,7 +918,7 @@ namespace SUI {
         CustomParams params;
         StyleSelector& styleSelector;
         
-        void CopyInlineStyles(){
+        /*void CopyInlineStyles(){
             if ( !isnan(inlineStyle.x) ) x = inlineStyle.x;
             if ( !isnan(inlineStyle.y) ) y = inlineStyle.y;
             if ( !isnan(inlineStyle.width) ) width = inlineStyle.width;
@@ -876,7 +933,7 @@ namespace SUI {
             if ( inlineStyle.overflow != "" ) overflow = inlineStyle.overflow;
             if ( !isnan(inlineStyle.anchorPoint) ) anchorPoint = inlineStyle.anchorPoint;
             if ( inlineStyle.hasBackgroundColor ) backgroundColor = inlineStyle.backgroundColor;
-        }
+        }*/
         
         
         //
@@ -914,23 +971,23 @@ namespace SUI {
         
         bool HitTest(Element& element){
             
-            float dx = abs(finalX - element.finalX);
-            float dy = abs(finalY - element.finalY);
+            float dx = abs(boundingRect.x - element.boundingRect.x);
+            float dy = abs(boundingRect.y - element.boundingRect.y);
             
-            if ( finalY <= element.finalY ) {
-                if ( dy <= finalHeight ){
-                    if ( finalX <= element.finalX ){
-                        if ( dx <= finalWidth ) return true;
+            if ( boundingRect.y <= element.boundingRect.y ) {
+                if ( dy <= height ){
+                    if ( boundingRect.x <= element.boundingRect.x ){
+                        if ( dx <= width ) return true;
                     } else {
-                        if ( dx <= element.finalWidth ) return true;
+                        if ( dx <= element.width ) return true;
                     }
                 }
             } else {
-                if ( dy <= element.finalHeight ){
-                    if ( finalX <= element.finalX ){
-                        if ( dx <= finalWidth ) return true;
+                if ( dy <= element.height ){
+                    if ( boundingRect.x <= element.boundingRect.x ){
+                        if ( dx <= width ) return true;
                     } else {
-                        if ( dx <= element.finalWidth ) return true;
+                        if ( dx <= element.width ) return true;
                     }
                 }
             }
@@ -950,21 +1007,78 @@ namespace SUI {
             UpdateStyle();
         }
         
+        ofFbo fbo;
+        
         void UpdateStyle(){
-            compiledStyle = styleSelector.Compile(state, inlineStyle);
+            compiledStyle = styleSelector.Compile(state);
+            MergeStyles(inlineStyle, true);
+            MergeStyles(compiledStyle);
+            
+            
+            if ( (fbo.isAllocated() && (width != fbo.getWidth() || height != fbo.getHeight())) || !fbo.isAllocated() ){
+                fbo.allocate( width, height, GL_RGBA );
+                fbo.begin();
+                ofClear(0);
+                fbo.end();
+            }
+            
+            
+            Render();
+            
+            /*if ( id == "ball" ){
+                compiledStyle.DebugLog();
+                DebugLog();
+            }*/
+            
+            //CopyInlineStyles();
         }
         
-        float finalX;
-        float finalY;
         
-        float finalWidth;
-        float finalHeight;
+        
+        ofRectangle& GetBoundingRect(){
+            return boundingRect;
+        }
+        
+        void Render(){
+            fbo.begin();
+            ofClear(0);
+            
+            if ( hasBackgroundColor ) {
+                ofSetColor( backgroundColor, 255.0 );
+                ofDrawRectangle(0, 0, width, height);
+            }
+            
+            
+            ofSetColor(255);
+            if ( backgroundImage != "" ) {
+                
+                ofImage* img = SUI::images[backgroundImage];
+                
+                if ( !isnan(backgroundSizeX) && !isnan(backgroundSizeY) ){
+                    img->drawSubsection(0,0, width, height, 0, 0, img->getWidth()*backgroundSizeX, img->getHeight()*backgroundSizeY);
+                } else {
+                    int w = img->getWidth() < width ? img->getWidth() : width;
+                    int h = img->getHeight() < height ? img->getHeight() : height;
+                    
+                    if ( compiledStyle.overflow == "hidden" ) img->drawSubsection(0,0, w, h, 0, 0, w, h);
+                    else img->draw(0,0);
+                }
+                
+                
+                //img->drawSubsection(0, 0, compiledStyle.width, compiledStyle.height, 0,0, img->getWidth(), img->getHeight());
+                
+                img = 0;
+                img = NULL;
+                delete img;
+            }
+            fbo.end();
+        }
         
         void Draw(float offsetX = 0.0, float offsetY = 0.0){
             //compiledStyle.DebugLog();
             
             
-            ofPushView();
+            
             //ofLog() << isnan(position.x);
             //ofTranslate(position.x, position.y);
             
@@ -973,34 +1087,10 @@ namespace SUI {
             //============================================================
             //============================================================
             
-            float tempX;
-            float tempY;
-            
-            if ( isnan(x) ){
-                tempX = compiledStyle.x;
-            } else {
-                tempX = x;
-            }
-            
-            if ( isnan(y) ){
-                tempY = compiledStyle.y;
-            } else {
-                tempY = y;
-            }
+            boundingRect.x = x;
+            boundingRect.y = y;
             
             //-------
-            
-            if ( isnan(width) ){
-                finalWidth = compiledStyle.width;
-            } else {
-                finalWidth = width;
-            }
-            
-            if ( isnan(height) ){
-                finalHeight = compiledStyle.height;
-            } else {
-                finalHeight = height;
-            }
             
             //============================================================
             //============================================================
@@ -1022,84 +1112,58 @@ namespace SUI {
                 case ANCHOR_LEFT_TOP:
                     break;
                 case ANCHOR_LEFT_CENTER:
-                    tempY -= finalHeight*.5;
+                    boundingRect.y -= height*.5;
                     break;
                 case ANCHOR_LEFT_BOTTOM:
-                    tempY -= finalHeight;
+                    boundingRect.y -= height;
                     break;
                     
                 case ANCHOR_RIGHT_TOP:
-                    tempY -= finalWidth;
+                    boundingRect.y -= width;
                     break;
                 case ANCHOR_RIGHT_CENTER:
-                    tempX -= finalWidth;
-                    tempY -= finalHeight*.5;
+                    boundingRect.x -= width;
+                    boundingRect.y -= height*.5;
                     break;
                 case ANCHOR_RIGHT_BOTTOM:
-                    tempX -= finalWidth;
-                    tempY -= finalHeight;
+                    boundingRect.x -= width;
+                    boundingRect.y -= height;
                     break;
                     
                 case ANCHOR_CENTER_TOP:
-                    tempX -= finalWidth*.5;
+                    boundingRect.x -= width*.5;
                     break;
                 case ANCHOR_CENTER_CENTER:
-                    tempX -= finalWidth*.5;
-                    tempY -= finalHeight*.5;
+                    boundingRect.x -= width*.5;
+                    boundingRect.y -= height*.5;
                     break;
                 case ANCHOR_CENTER_BOTTOM:
-                    tempX -= finalWidth*.5;
-                    tempY -= finalHeight;
+                    boundingRect.x -= width*.5;
+                    boundingRect.y -= height;
                     break;
             }
             
-            finalX = tempX;
-            finalY = tempY;
+            boundingRect.width = width;
+            boundingRect.height = height;
             
-            ofTranslate(finalX, finalY);
+            //ofLog() << boundingRect;
+            ofEnableAlphaBlending();
             
-            if ( hasBackgroundColor ) {
-                ofSetColor( backgroundColor );
-                ofDrawRectangle(0, 0, finalWidth, finalHeight);
-            } else {
-                if ( compiledStyle.hasBackgroundColor ) {
-                    ofSetColor( compiledStyle.backgroundColor );
-                    ofDrawRectangle(0, 0, finalWidth, finalHeight);
-                }
-            }
-            
+            ofPushView();
+            //ofTranslate(boundingRect.x, boundingRect.y);
+            ofTranslate(x, y);
+            ofRotate(rotation);
+            //ofTranslate();
+            ofSetColor(255,255,255, 255.0*opacity);
+            fbo.draw(boundingRect.x-x, boundingRect.y-y);
+            ofPopView();
             
             ofSetColor(255);
-            if ( compiledStyle.backgroundImage != "" || backgroundImage != "" ) {
-                string bgFilepath;
-                if ( backgroundImage != "" ) bgFilepath = backgroundImage;
-                else bgFilepath = compiledStyle.backgroundImage;
-                
-                ofImage* img = SUI::images[bgFilepath];
-                
-                if ( !isnan(backgroundSizeX) && !isnan(backgroundSizeY) ){
-                    img->drawSubsection(0,0, finalWidth, finalHeight, 0, 0, img->getWidth()*backgroundSizeX, img->getHeight()*backgroundSizeY);
-                } else if ( !isnan(compiledStyle.backgroundSizeX) && !isnan(compiledStyle.backgroundSizeY) ){
-                    img->drawSubsection(0,0, finalWidth, finalHeight, 0, 0, img->getWidth()*compiledStyle.backgroundSizeX, img->getHeight()*compiledStyle.backgroundSizeY);
-                } else {
-                    int w = img->getWidth() < finalWidth ? img->getWidth() : finalWidth;
-                    int h = img->getHeight() < finalHeight ? img->getHeight() : finalHeight;
-                    
-                    if ( compiledStyle.overflow == "hidden" ) img->drawSubsection(0,0, w, h, 0, 0, w, h);
-                    else img->draw(0,0);
-                }
-                
-                
-                //img->drawSubsection(0, 0, compiledStyle.width, compiledStyle.height, 0,0, img->getWidth(), img->getHeight());
-                
-                img = 0;
-                img = NULL;
-                delete img;
-            }
-            ofPopView();
         }
         
     private:
+        ofRectangle boundingRect;
+        
         void UpdateStyle(suiStyleSelectorArgs& args){
             Refresh();
         }
@@ -1218,7 +1282,8 @@ namespace SUI {
                     el->Reset();
                     el->inlineStyle.Reset();
                     ParseStyle(el->inlineStyle, styles);
-                    el->CopyInlineStyles();
+                    el->UpdateStyle();
+                    //el->CopyInlineStyles();
                     
                     el = 0;
                     el = NULL;
@@ -1229,7 +1294,8 @@ namespace SUI {
                     ofLog() << nameSelector[1] << "============";
                     ParseStyle(el.inlineStyle, styles);
                     ofLog() << el.inlineStyle.y;
-                    el.CopyInlineStyles();
+                    el.UpdateStyle();
+                    //el.CopyInlineStyles();
                     ofLog() << "---- ";
                     ofLog() << " ";
                 }
