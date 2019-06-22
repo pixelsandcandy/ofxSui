@@ -59,6 +59,17 @@ namespace SUI {
         return s;
     }
     
+    class CustomParams {
+    public:
+        ~CustomParams(){};
+        CustomParams(){};
+        
+        map<string,bool> bools;
+        map<string,string> strings;
+        map<string,int> ints;
+        map<string,float> floats;
+    };
+    
     static vector<string> GetStyles(vector<string> lines){
         vector <string> styleLines;
         
@@ -77,6 +88,7 @@ namespace SUI {
             
             // skip comments
             if ( line.find("//") == 0 ) continue;
+            if ( line.find("/*") != string::npos && line.find("*/") != string::npos ) continue;
             if ( !commentOpen ) {
                 if ( line.find("/*") == 0 ) {
                     commentOpen = true;
@@ -129,6 +141,7 @@ namespace SUI {
     };
     
     static map<string, vector<string>> GetBlocks(vector<string> lines){
+        vector<string> keys;
         map<string, vector<string>> blocks;
         vector <string> strLines;
         
@@ -202,6 +215,10 @@ namespace SUI {
                         ofLog() << ofJoinString(blocks[selector], "\n");
                         blockOpen = false;
                         
+                        keys.push_back(selector);
+                        
+                        blocks["[[-keys-]]"] = keys;
+                        
                     } else {
                         strLines.push_back(l);
                     }
@@ -222,6 +239,61 @@ namespace SUI {
         }
         return GetBlocks(lines);
     }
+    
+    static void ParseCustomParams(SUI::CustomParams& params, map<string, vector<string>> blocks){
+        vector<string> lines = GetStyles( blocks["-params"] );
+        
+        for (auto line : lines ){
+            //ofLog() << line;
+            vector<string> keyValue = vector<string>(2);
+            line = CleanString(line);
+            
+            int index = line.find_first_of(":");
+            keyValue[0] = line.substr(0,index);
+            keyValue[1] = line.substr(index+1);
+            
+            if ( keyValue[0].find("(string)") != string::npos ){
+                params.strings[ keyValue[0].substr(keyValue[0].find("(string)")+8) ] = keyValue[1];
+            } else if ( keyValue[0].find("(bool)") != string::npos ){
+                params.bools[ keyValue[0].substr(keyValue[0].find("(bool)")+6) ] = ofToBool(keyValue[1]);
+            } else if ( keyValue[0].find("(int)") != string::npos ){
+                params.ints[ keyValue[0].substr(keyValue[0].find("(int)")+5) ] = ofToInt(keyValue[1]);
+            } else if ( keyValue[0].find("(float)") != string::npos ){
+                params.floats[ keyValue[0].substr(keyValue[0].find("(float)")+7) ] = ofToFloat(keyValue[1]);
+            }
+            
+            ofLog() << keyValue[0] << " – " << keyValue[1];
+            
+        }
+    }
+    
+    static void ParseCustomParams(SUI::CustomParams& params, vector<string> lines){
+        
+        for (auto line : lines ){
+            //ofLog() << line;
+            vector<string> keyValue = vector<string>(2);
+            line = CleanString(line);
+            
+            int index = line.find_first_of(":");
+            keyValue[0] = line.substr(0,index);
+            keyValue[1] = line.substr(index+1);
+            
+            if ( keyValue[0].find("(string)") != string::npos ){
+                params.strings[ keyValue[0].substr(keyValue[0].find("(string)")+8) ] = keyValue[1];
+            } else if ( keyValue[0].find("(bool)") != string::npos ){
+                params.bools[ keyValue[0].substr(keyValue[0].find("(bool)")+6) ] = ofToBool(keyValue[1]);
+            } else if ( keyValue[0].find("(int)") != string::npos ){
+                params.ints[ keyValue[0].substr(keyValue[0].find("(int)")+5) ] = ofToInt(keyValue[1]);
+            } else if ( keyValue[0].find("(float)") != string::npos ){
+                params.floats[ keyValue[0].substr(keyValue[0].find("(float)")+7) ] = ofToFloat(keyValue[1]);
+            }
+            
+            //ofLog() << keyValue[0] << " – " << keyValue[1];
+            
+        }
+    }
+    
+    
     
     //========================================================================================================
     //========================================================================================================
@@ -266,16 +338,7 @@ namespace SUI {
         vector<string> onStart = vector<string>();
     };
     
-    class CustomParams {
-    public:
-        ~CustomParams(){};
-        CustomParams(){};
-        
-        map<string,bool> bools;
-        map<string,string> strings;
-        map<string,int> ints;
-        map<string,float> floats;
-    };
+    
     
     
     
@@ -391,17 +454,12 @@ namespace SUI {
         }
     };
     
-    class Style : public AnimatableParams{
+    class Style : public AnimatableParams {
     public:
         ~Style(){};
         Style(){};
         
-        void SetBackgroundColor(string hex){
-            string col = ofJoinString(ofSplitString(hex,"#"), "");
-            float floatColor = stoul(col, nullptr, 16);
-            backgroundColor.setHex(floatColor);
-            hasBackgroundColor = true;
-        }
+        
         
         void Copy(Style& copyStyle){
             backgroundColor = copyStyle.backgroundColor;
@@ -415,6 +473,22 @@ namespace SUI {
             y = copyStyle.x;
             anchorPoint = copyStyle.anchorPoint;
             hasBackgroundColor = copyStyle.hasBackgroundColor;
+        }
+        
+        void Reset(){
+            x = nanf("");
+            y = nanf("");
+            width = nanf("");
+            height = nanf("");
+            scale = nanf("");
+            rotation = nanf("");
+            opacity = nanf("");
+            backgroundSizeX = nanf("");
+            backgroundSizeY = nanf("");
+            anchorPoint = ANCHOR_LEFT_TOP;
+            overflow = "auto";
+            backgroundColor = ofColor::white;
+            backgroundImage = "";
         }
         
         void ResetBase(){
@@ -442,7 +516,7 @@ namespace SUI {
             overflow = "auto";
             backgroundColor = ofColor::white;
             backgroundImage = "";
-            hasBackgroundColor = true;
+            //hasBackgroundColor = true;
             
         }
         
@@ -458,22 +532,104 @@ namespace SUI {
             ofLog() << "------------->>";
         }
         
-        ofColor backgroundColor = ofColor::white;
+        
         int anchorPoint = nan(0);
         
+        void SetBackgroundColor(string hex){
+            string col = ofJoinString(ofSplitString(hex,"#"), "");
+            float floatColor = stoul(col, nullptr, 16);
+            backgroundColor.setHex(floatColor);
+            hasBackgroundColor = true;
+        }
+        
+        
         bool hasBackgroundColor = false;
+        ofColor backgroundColor = ofColor::white;
         string backgroundImage = "";
         string overflow = "";
         vector<string> rawStyles;
         vector<string> styles;
-        map<string, vector<string>> blocks;
-        
-        
-        vector<string> GetRawActions(){
-            return blocks["[actions]"];
-        }
+        //map<string, vector<string>> blocks;
         
     };
+    
+    static void ParseStyle(Style& style, vector<string> lines){
+        for ( auto line : lines ){
+            //ofLog() << "s << " << s;
+            if ( line.find("{") == string::npos && line.find("}") == string::npos && line != "" ){
+                vector<string> keyValue = ofSplitString(line, ":");
+                keyValue[1] = ofJoinString(ofSplitString(keyValue[1],";"), "");
+                //ofLog() << keyValue[0] << ":" << keyValue[1];
+                //return;
+                keyValue[0] = ofToLower(keyValue[0]);
+                
+                if ( keyValue[0] == "background-color" ){
+                    if ( keyValue[1].find("#") != string::npos ){
+                        //string col = ofJoinString(ofSplitString(keyValue[1],"#"), "");
+                        //float floatColor = stoul(col, nullptr, 16);
+                        style.SetBackgroundColor(keyValue[1]);
+                    }
+                } else if ( keyValue[0] == "anchorpoint" ){
+                    //baseStyle.width = ofToInt(keyValue[1]);
+                    string val = CleanString(ofToLower(keyValue[1]), true);
+                    
+                    /*ANCHOR_LEFT_TOP,
+                     ANCHOR_LEFT_CENTER,
+                     ANCHOR_LEFT_BOTTOM,
+                     ANCHOR_RIGHT_TOP,
+                     ANCHOR_RIGHT_CENTER,
+                     ANCHOR_RIGHT_BOTTOM,
+                     ANCHOR_CENTER_TOP,
+                     ANCHOR_CENTER_CENTER,
+                     ANCHOR_CENTER_BOTTOM*/
+                    
+                    if ( val == "left-top" || val == "left_top" ){
+                        style.anchorPoint = ANCHOR_LEFT_TOP;
+                    } else if ( val == "left-center" || val == "left_center" ){
+                        style.anchorPoint = ANCHOR_LEFT_CENTER;
+                    } else if ( val == "left-bottom" || val == "left_bottom" ){
+                        style.anchorPoint = ANCHOR_LEFT_BOTTOM;
+                    } else if ( val == "right-top" || val == "right_top" ){
+                        style.anchorPoint = ANCHOR_RIGHT_TOP;
+                    } else if ( val == "right-center" || val == "right_center" ){
+                        style.anchorPoint = ANCHOR_RIGHT_CENTER;
+                    } else if ( val == "right-bottom" || val == "right_bottom" ){
+                        style.anchorPoint = ANCHOR_RIGHT_BOTTOM;
+                    } else if ( val == "center-top" || val == "center_top" ){
+                        style.anchorPoint = ANCHOR_CENTER_TOP;
+                    } else if ( val == "center-center" || val == "center_center" ){
+                        style.anchorPoint = ANCHOR_CENTER_CENTER;
+                    } else if ( val == "center-bottom" || val == "center_bottom" ){
+                        style.anchorPoint = ANCHOR_CENTER_BOTTOM;
+                    }
+                    
+                } else if ( keyValue[0] == "width" ){
+                    style.width = ofToInt(keyValue[1]);
+                } else if ( keyValue[0] == "height" ){
+                    style.height = ofToInt(keyValue[1]);
+                } else if ( keyValue[0] == "x" ){
+                    style.x = ofToInt(keyValue[1]);
+                } else if ( keyValue[0] == "y" ){
+                    style.y = ofToInt(keyValue[1]);
+                } else if ( keyValue[0] == "background-image" || keyValue[0] == "backgroundimage" ){
+                    style.backgroundImage = CleanString(keyValue[1], true);
+                    //ofLog() << keyValue[1];
+                    //ofLog() << ofToString(keyValue[1]);
+                    //ofLog() << SUI::images.count(keyValue[1]);
+                    if ( SUI::images.count(keyValue[1]) == 0 ) SUI::images[style.backgroundImage] = new ofImage();
+                    SUI::images[style.backgroundImage]->load(ofToDataPath(style.backgroundImage));
+                } else if ( keyValue[0] == "overflow" ){
+                    style.overflow = CleanString(keyValue[1], true);
+                } else if ( keyValue[0] == "background-size" ){
+                    keyValue[1] = CleanString(keyValue[1]);
+                    vector<string> values = ofSplitString(keyValue[1],"%");
+                    style.backgroundSizeX = (float)ofToInt(values[0])/100.0;
+                    style.backgroundSizeY = (float)ofToInt(values[1])/100.0;
+                }
+            }
+            
+        }
+    }
     
     class StyleBaseParams: public Style {
     public:
@@ -505,7 +661,26 @@ namespace SUI {
     
     struct suiStyleSelectorArgs;
     
-    class StyleSelector: public StyleBaseParams {
+    class BlocksBase {
+    public:
+        ~BlocksBase(){};
+        BlocksBase(){}
+        map<string, vector<string>> blocks;
+        
+        vector<string> GetBlock(string selector){
+            vector<string> vecStr;
+            
+            for (auto it=blocks.begin(); it!=blocks.end(); ++it){
+                if ( it->first == selector ){
+                    return it->second;
+                }
+            }
+            
+            return vecStr;
+        }
+    };
+    
+    class StyleSelector: public StyleBaseParams, public BlocksBase {
     public:
         ~StyleSelector(){
             stylesheet = 0;
@@ -519,7 +694,6 @@ namespace SUI {
         };
         
         StyleSheet* stylesheet = NULL;
-        map<string, vector<string>> blocks;
         
         void Bind(StyleSheet& stylesheet);
         
@@ -548,14 +722,14 @@ namespace SUI {
             }
             
             
-            if ( !isnan(inlineStyle.width) ) style.width = inlineStyle.width;
+            /*if ( !isnan(inlineStyle.width) ) style.width = inlineStyle.width;
             if ( !isnan(inlineStyle.height) ) style.height = inlineStyle.height;
             if ( !isnan(inlineStyle.backgroundSizeX) ) style.backgroundSizeX = inlineStyle.backgroundSizeX;
             if ( !isnan(inlineStyle.backgroundSizeY) ) style.backgroundSizeY = inlineStyle.backgroundSizeY;
             if ( inlineStyle.backgroundImage != "" ) style.backgroundImage = inlineStyle.backgroundImage;
             if ( inlineStyle.overflow != "" ) style.overflow = inlineStyle.overflow;
             if ( !isnan(inlineStyle.anchorPoint) ) style.anchorPoint = inlineStyle.anchorPoint;
-            if ( inlineStyle.hasBackgroundColor ) style.backgroundColor = inlineStyle.backgroundColor;
+            if ( inlineStyle.hasBackgroundColor ) style.backgroundColor = inlineStyle.backgroundColor;*/
             
             return style;
         }
@@ -566,91 +740,15 @@ namespace SUI {
         
         void ParseBlocks(){
             Reset();
-            ParseStyle( GetStyles(blocks["-render"]) );
+            ParseStyle( baseStyle, GetStyles(blocks["-render"]) );
         }
         
-        void ParseStyle(vector<string> lines){
-            for ( auto line : lines ){
-                //ofLog() << "s << " << s;
-                if ( line.find("{") == string::npos && line.find("}") == string::npos && line != "" ){
-                    vector<string> keyValue = ofSplitString(line, ":");
-                    keyValue[1] = ofJoinString(ofSplitString(keyValue[1],";"), "");
-                    //ofLog() << keyValue[0] << ":" << keyValue[1];
-                    //return;
-                    keyValue[0] = ofToLower(keyValue[0]);
-                    
-                    if ( keyValue[0] == "background-color" ){
-                        if ( keyValue[1].find("#") != string::npos ){
-                            //string col = ofJoinString(ofSplitString(keyValue[1],"#"), "");
-                            //float floatColor = stoul(col, nullptr, 16);
-                            baseStyle.SetBackgroundColor(keyValue[1]);
-                        }
-                    } else if ( keyValue[0] == "anchorpoint" ){
-                        //baseStyle.width = ofToInt(keyValue[1]);
-                        string val = CleanString(ofToLower(keyValue[1]), true);
-                        
-                        /*ANCHOR_LEFT_TOP,
-                        ANCHOR_LEFT_CENTER,
-                        ANCHOR_LEFT_BOTTOM,
-                        ANCHOR_RIGHT_TOP,
-                        ANCHOR_RIGHT_CENTER,
-                        ANCHOR_RIGHT_BOTTOM,
-                        ANCHOR_CENTER_TOP,
-                        ANCHOR_CENTER_CENTER,
-                        ANCHOR_CENTER_BOTTOM*/
-                        
-                        if ( val == "left-top" || val == "left_top" ){
-                            baseStyle.anchorPoint = ANCHOR_LEFT_TOP;
-                        } else if ( val == "left-center" || val == "left_center" ){
-                            baseStyle.anchorPoint = ANCHOR_LEFT_CENTER;
-                        } else if ( val == "left-bottom" || val == "left_bottom" ){
-                            baseStyle.anchorPoint = ANCHOR_LEFT_BOTTOM;
-                        } else if ( val == "right-top" || val == "right_top" ){
-                            baseStyle.anchorPoint = ANCHOR_RIGHT_TOP;
-                        } else if ( val == "right-center" || val == "right_center" ){
-                            baseStyle.anchorPoint = ANCHOR_RIGHT_CENTER;
-                        } else if ( val == "right-bottom" || val == "right_bottom" ){
-                            baseStyle.anchorPoint = ANCHOR_RIGHT_BOTTOM;
-                        } else if ( val == "center-top" || val == "center_top" ){
-                            baseStyle.anchorPoint = ANCHOR_CENTER_TOP;
-                        } else if ( val == "center-center" || val == "center_center" ){
-                            baseStyle.anchorPoint = ANCHOR_CENTER_CENTER;
-                        } else if ( val == "center-bottom" || val == "center_bottom" ){
-                            baseStyle.anchorPoint = ANCHOR_CENTER_BOTTOM;
-                        }
-                        
-                    } else if ( keyValue[0] == "width" ){
-                        baseStyle.width = ofToInt(keyValue[1]);
-                    } else if ( keyValue[0] == "height" ){
-                        baseStyle.height = ofToInt(keyValue[1]);
-                    } else if ( keyValue[0] == "x" ){
-                        baseStyle.x = ofToInt(keyValue[1]);
-                    } else if ( keyValue[0] == "y" ){
-                        baseStyle.y = ofToInt(keyValue[1]);
-                    } else if ( keyValue[0] == "background-image" || keyValue[0] == "backgroundimage" ){
-                        baseStyle.backgroundImage = CleanString(keyValue[1], true);
-                        //ofLog() << keyValue[1];
-                        //ofLog() << ofToString(keyValue[1]);
-                        //ofLog() << SUI::images.count(keyValue[1]);
-                        if ( SUI::images.count(keyValue[1]) == 0 ) SUI::images[baseStyle.backgroundImage] = new ofImage();
-                        SUI::images[baseStyle.backgroundImage]->load(ofToDataPath(baseStyle.backgroundImage));
-                    } else if ( keyValue[0] == "overflow" ){
-                        baseStyle.overflow = CleanString(keyValue[1], true);
-                    } else if ( keyValue[0] == "background-size" ){
-                        keyValue[1] = CleanString(keyValue[1]);
-                        vector<string> values = ofSplitString(keyValue[1],"%");
-                        baseStyle.backgroundSizeX = (float)ofToInt(values[0])/100.0;
-                        baseStyle.backgroundSizeY = (float)ofToInt(values[1])/100.0;
-                    }
-                }
-                
-            }
-        }
+        
     };
     
     
     
-    class StyleSheet {
+    class StyleSheet: public BlocksBase {
     public:
         ~StyleSheet(){};
         StyleSheet(){};
@@ -668,7 +766,6 @@ namespace SUI {
         
         bool liveReloading = false;
         float updateInterval = 1.0;
-        map<string, vector<string>> blocks;
         map<string, StyleSelector*> selectors;
         
         
@@ -724,19 +821,6 @@ namespace SUI {
             return selectors.count(selector);
         }
         
-        
-        vector<string> SelectBlock(string selector){
-            vector<string> vecStr;
-            
-            for (auto it=blocks.begin(); it!=blocks.end(); ++it){
-                if ( it->first == selector ){
-                    return it->second;
-                }
-            }
-            
-            return vecStr;
-        }
-        
         //
         
     private:
@@ -757,7 +841,7 @@ namespace SUI {
         suiStyleSheetArgs(StyleSheet &stylesheet):stylesheet(stylesheet){}
     };
     
-    class Element : public AnimatableParams, public StyleRenderParams {
+    class Element : public StyleRenderParams, public Style {
     public:
         ~Element(){
             //stylesheet = 0;
@@ -767,17 +851,32 @@ namespace SUI {
         Element(StyleSelector& styleSelector, string id = ""):styleSelector(styleSelector){
             this->id = id;
             ofAddListener(styleSelector.onUpdate, this, &Element::UpdateStyle);
-            
-            UpdateStyle();
+            Refresh();
         }
         
         string id;
         string selector;
         
         Actions actions;
-        CustomParams customParams;
+        CustomParams params;
         StyleSelector& styleSelector;
         
+        void CopyInlineStyles(){
+            if ( !isnan(inlineStyle.x) ) x = inlineStyle.x;
+            if ( !isnan(inlineStyle.y) ) y = inlineStyle.y;
+            if ( !isnan(inlineStyle.width) ) width = inlineStyle.width;
+            if ( !isnan(inlineStyle.height) ) height = inlineStyle.height;
+            if ( !isnan(inlineStyle.backgroundSizeX) ) backgroundSizeX = inlineStyle.backgroundSizeX;
+            if ( !isnan(inlineStyle.backgroundSizeY) ) backgroundSizeY = inlineStyle.backgroundSizeY;
+            if ( inlineStyle.backgroundImage != "" ) {
+                backgroundImage = inlineStyle.backgroundImage;
+                if ( SUI::images.count(backgroundImage) == 0 ) SUI::images[backgroundImage] = new ofImage();
+                SUI::images[backgroundImage]->load(ofToDataPath(backgroundImage));
+            }
+            if ( inlineStyle.overflow != "" ) overflow = inlineStyle.overflow;
+            if ( !isnan(inlineStyle.anchorPoint) ) anchorPoint = inlineStyle.anchorPoint;
+            if ( inlineStyle.hasBackgroundColor ) backgroundColor = inlineStyle.backgroundColor;
+        }
         
         
         //
@@ -807,7 +906,8 @@ namespace SUI {
         }
         
         Element& SetBackgroundColor(string hexString){
-            inlineStyle.SetBackgroundColor(hexString);
+            //inlineStyle.SetBackgroundColor(hexString);
+            Style::SetBackgroundColor(hexString);
             UpdateStyle();
             return *this;
         }
@@ -844,6 +944,12 @@ namespace SUI {
             return false;
         }
         
+        void Refresh(){
+            ParseCustomParams(params, styleSelector.blocks );
+            ofLog() << "pings:" << params.ints["pings"];
+            UpdateStyle();
+        }
+        
         void UpdateStyle(){
             compiledStyle = styleSelector.Compile(state, inlineStyle);
         }
@@ -857,7 +963,7 @@ namespace SUI {
         void Draw(float offsetX = 0.0, float offsetY = 0.0){
             //compiledStyle.DebugLog();
             
-            ofSetColor( compiledStyle.backgroundColor );
+            
             ofPushView();
             //ofLog() << isnan(position.x);
             //ofTranslate(position.x, position.y);
@@ -867,16 +973,19 @@ namespace SUI {
             //============================================================
             //============================================================
             
+            float tempX;
+            float tempY;
+            
             if ( isnan(x) ){
-                finalX = compiledStyle.x;
+                tempX = compiledStyle.x;
             } else {
-                finalX = x;
+                tempX = x;
             }
             
             if ( isnan(y) ){
-                finalY = compiledStyle.y;
+                tempY = compiledStyle.y;
             } else {
-                finalY = y;
+                tempY = y;
             }
             
             //-------
@@ -913,44 +1022,64 @@ namespace SUI {
                 case ANCHOR_LEFT_TOP:
                     break;
                 case ANCHOR_LEFT_CENTER:
-                    finalY -= finalHeight*.5;
+                    tempY -= finalHeight*.5;
                     break;
                 case ANCHOR_LEFT_BOTTOM:
-                    finalY -= finalHeight;
+                    tempY -= finalHeight;
                     break;
                     
                 case ANCHOR_RIGHT_TOP:
-                    finalX -= finalWidth;
+                    tempY -= finalWidth;
                     break;
                 case ANCHOR_RIGHT_CENTER:
-                    finalX -= finalWidth;
-                    finalY -= finalHeight*.5;
+                    tempX -= finalWidth;
+                    tempY -= finalHeight*.5;
                     break;
                 case ANCHOR_RIGHT_BOTTOM:
-                    finalX -= finalWidth;
-                    finalY -= finalHeight;
+                    tempX -= finalWidth;
+                    tempY -= finalHeight;
                     break;
                     
                 case ANCHOR_CENTER_TOP:
-                    finalX -= finalWidth*.5;
+                    tempX -= finalWidth*.5;
                     break;
                 case ANCHOR_CENTER_CENTER:
-                    finalX -= finalWidth*.5;
-                    finalY -= finalHeight*.5;
+                    tempX -= finalWidth*.5;
+                    tempY -= finalHeight*.5;
                     break;
                 case ANCHOR_CENTER_BOTTOM:
-                    finalX -= finalWidth*.5;
-                    finalY -= finalHeight;
+                    tempX -= finalWidth*.5;
+                    tempY -= finalHeight;
                     break;
             }
             
+            finalX = tempX;
+            finalY = tempY;
+            
             ofTranslate(finalX, finalY);
             
-            ofDrawRectangle(0, 0, finalWidth, finalHeight);
+            if ( hasBackgroundColor ) {
+                ofSetColor( backgroundColor );
+                ofDrawRectangle(0, 0, finalWidth, finalHeight);
+            } else {
+                if ( compiledStyle.hasBackgroundColor ) {
+                    ofSetColor( compiledStyle.backgroundColor );
+                    ofDrawRectangle(0, 0, finalWidth, finalHeight);
+                }
+            }
+            
+            
             ofSetColor(255);
-            if ( compiledStyle.backgroundImage != "" ) {
-                ofImage* img = SUI::images[compiledStyle.backgroundImage];
-                if ( !isnan(compiledStyle.backgroundSizeX) && !isnan(compiledStyle.backgroundSizeY) ){
+            if ( compiledStyle.backgroundImage != "" || backgroundImage != "" ) {
+                string bgFilepath;
+                if ( backgroundImage != "" ) bgFilepath = backgroundImage;
+                else bgFilepath = compiledStyle.backgroundImage;
+                
+                ofImage* img = SUI::images[bgFilepath];
+                
+                if ( !isnan(backgroundSizeX) && !isnan(backgroundSizeY) ){
+                    img->drawSubsection(0,0, finalWidth, finalHeight, 0, 0, img->getWidth()*backgroundSizeX, img->getHeight()*backgroundSizeY);
+                } else if ( !isnan(compiledStyle.backgroundSizeX) && !isnan(compiledStyle.backgroundSizeY) ){
                     img->drawSubsection(0,0, finalWidth, finalHeight, 0, 0, img->getWidth()*compiledStyle.backgroundSizeX, img->getHeight()*compiledStyle.backgroundSizeY);
                 } else {
                     int w = img->getWidth() < finalWidth ? img->getWidth() : finalWidth;
@@ -972,7 +1101,7 @@ namespace SUI {
         
     private:
         void UpdateStyle(suiStyleSelectorArgs& args){
-            UpdateStyle();
+            Refresh();
         }
         
         void ReloadStyle(suiStyleSheetArgs& args){
@@ -991,7 +1120,7 @@ namespace SUI {
         
         
         void ParseActions(SUI::Style style){
-            actions.Parse(style.GetRawActions());
+            //actions.Parse(style.GetRawActions());
         }
         
     };
@@ -1010,14 +1139,7 @@ namespace SUI {
         vector<Element*> elements;
         StyleSheet* stylesheet = NULL;
         
-        struct Global {
-            map<string, float> floats;
-            map<string, bool> bools;
-            map<string, int> ints;
-            map<string, string> strings;
-        };
-        
-        Global global;
+        CustomParams global;
         
         
         bool ElementExists(string id){
@@ -1080,44 +1202,43 @@ namespace SUI {
         };
         
         void MakeElements(){
-            map<string, vector<string>> blocks = GetBlocks(stylesheet->SelectBlock("[elements]"));
+            map<string, vector<string>> blocks = GetBlocks(stylesheet->GetBlock("[elements]"));
             
-            for (auto it=blocks.begin(); it!=blocks.end(); ++it){
-                string selector = CleanSelector(it->first);
+            for ( auto key : blocks["[[-keys-]]"] ){
+                string selector = CleanSelector(key);
                 vector<string> nameSelector = ofSplitString(selector, ":");
                 
-                vector<string> styles = GetStyles(it->second);
+                vector<string> styles = GetStyles(blocks[key]);
                 
-                
+                ofLog() << "[Make] " << nameSelector[0] << ":" << nameSelector[1];
                 
                 if ( ElementExists(nameSelector[0]) ) {
                     Element* el = GetElementById(nameSelector[0]);
                     
-                    el->ResetAnimatableParams();
+                    el->Reset();
+                    el->inlineStyle.Reset();
+                    ParseStyle(el->inlineStyle, styles);
+                    el->CopyInlineStyles();
                     
-                    for (auto style : styles){
-                        vector<string> keyValue = ofSplitString(style, ":");
-                        if ( keyValue[0] == "x" ) el->x = ofToInt(keyValue[1]);
-                        else if ( keyValue[0] == "y" ) el->y = ofToInt(keyValue[1]);
-                    }
                     el = 0;
                     el = NULL;
-                    delete el;
-                    continue;
-                }
-                if ( !stylesheet->HasSelector(nameSelector[1]) ) continue;
-                
-                Element& el = AddElement(nameSelector[1], nameSelector[0]);
-                for (auto style : styles){
-                    vector<string> keyValue = ofSplitString(style, ":");
-                    if ( keyValue[0] == "x" ) el.x = ofToInt(keyValue[1]);
-                    else if ( keyValue[0] == "y" ) el.y = ofToInt(keyValue[1]);
+                } else {
+                    if ( !stylesheet->HasSelector(nameSelector[1]) ) continue;
+                    
+                    Element& el = AddElement(nameSelector[1], nameSelector[0]);
+                    ofLog() << nameSelector[1] << "============";
+                    ParseStyle(el.inlineStyle, styles);
+                    ofLog() << el.inlineStyle.y;
+                    el.CopyInlineStyles();
+                    ofLog() << "---- ";
+                    ofLog() << " ";
                 }
             }
         }
         
         void Draw(){
-            for (auto element : boost::adaptors::reverse(elements) ){
+            //for (auto element : boost::adaptors::reverse(elements) ){
+            for (auto element : elements ){
                 element->Draw();
             }
         };
@@ -1126,36 +1247,11 @@ namespace SUI {
             ReloadData();
         }
         
-        void GetGlobals(){
-            vector<string> lines = GetStyles( GetBlocks(stylesheet->SelectBlock("[global]"))["-params"] );
-            
-            for (auto line : lines ){
-                //ofLog() << line;
-                vector<string> keyValue = vector<string>(2);
-                line = CleanString(line);
-                
-                int index = line.find_first_of(":");
-                keyValue[0] = line.substr(0,index);
-                keyValue[1] = line.substr(index+1);
-                
-                if ( keyValue[0].find("(string)") != string::npos ){
-                    global.strings[ keyValue[0].substr(keyValue[0].find("(string)")+9) ] = keyValue[1];
-                } else if ( keyValue[0].find("(bool)") != string::npos ){
-                    global.bools[ keyValue[0].substr(keyValue[0].find("(bool)")+6) ] = ofToBool(keyValue[1]);
-                } else if ( keyValue[0].find("(int)") != string::npos ){
-                    global.ints[ keyValue[0].substr(keyValue[0].find("(bool)")+5) ] = ofToInt(keyValue[1]);
-                } else if ( keyValue[0].find("(float)") != string::npos ){
-                    global.floats[ keyValue[0].substr(keyValue[0].find("(float)")+7) ] = ofToFloat(keyValue[1]);
-                }
-                
-                //ofLog() << keyValue[0] << " – " << keyValue[1];
-                
-            }
-        }
+        
         
         void ReloadData(){
             MakeElements();
-            GetGlobals();
+            ParseCustomParams(global, GetBlocks(stylesheet->GetBlock("[global]")));
         }
         
         
