@@ -322,4 +322,41 @@ namespace SUI {
         }
         el->Update();
     }
+    
+    
+    void Action::Run(Element& el){
+        ofLog() << "Action::Run()";
+        for (auto it=subactions.begin(); it!=subactions.end(); ++it){
+            ofLog() << "[" << it->first << "]";
+            if (it->first == "animate"){
+                
+                int index = it->second.find(",");
+                float duration = ofToFloat(it->second.substr(0, index ));
+                string params = it->second.substr(index+1);
+                params = ofJoinString( ofSplitString(params, ";"), "" );
+                
+                ofLog() << "animate > " << duration << " > " << params;
+                el.Animate(duration, params);
+            } else if (it->first == "commands"){
+                vector<string> commands = ofSplitString(CleanArrayBrackets(it->second), ",");
+                for (auto command : commands){
+                    ofLog() << "command > " << command;
+                    if ( command.find("actions.") != string::npos ){
+                        if ( command.find("(") == string::npos && command.find(")") == string::npos ){
+                            el.styleSelector.RunAction(command.substr(command.find(".")+1), el);
+                        } else if (ofToString(command[0]) != "(" && command.find("(") != string::npos && command.find(")") != string::npos) {
+                            string selectorId = command.substr( command.find("(")+1 );
+                            selectorId = ofJoinString( ofSplitString(selectorId, ")"), "" );
+                            
+                            string actionId = ofSplitString(ofSplitString(command, ".")[1], "(")[0];
+                            
+                            el.styleSelector.RunAction(actionId, *el.canvas.GetElementById(selectorId));
+                        }
+                    } else if ( command.find("trigger.") != string::npos ){
+                        el.canvas.TriggerEvent( command.substr( command.find(".")+1 ) );
+                    }
+                }
+            }
+        }
+    }
 }

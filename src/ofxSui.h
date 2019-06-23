@@ -36,6 +36,12 @@ namespace SUI {
         return selector;
     }
     
+    static string CleanArrayBrackets(string str){
+        str = ofJoinString(ofSplitString(str, "["), "" );
+        str = ofJoinString(ofSplitString(str, "]"), "" );
+        return str;
+    }
+    
     enum AnchorPoint {
         ANCHOR_LEFT_TOP,
         ANCHOR_LEFT_CENTER,
@@ -67,7 +73,7 @@ namespace SUI {
         
         SUI_EVENT_STATE_CHANGE,
         SUI_EVENT_TEXT_CHANGE,
-        SSUI_EVENT_VALUE_CHANGE,
+        SUI_EVENT_VALUE_CHANGE,
         SUI_EVENT_SLIDER_VALUE_CHANGE,
         SUI_EVENT_TOGGLE_CHANGE,
         SUI_EVENT_SUBMIT,
@@ -179,6 +185,7 @@ namespace SUI {
         return styleLines;
     };
     
+    
     static map<string, vector<string>> GetBlocks(vector<string> lines){
         vector<string> keys;
         map<string, vector<string>> blocks;
@@ -251,7 +258,7 @@ namespace SUI {
                         
                         blocks[selector] = vector<string>(strLines);
                         ofLog() << "[Block] " << selector << "    lines:" << blocks[selector].size();
-                        ofLog() << ofJoinString(blocks[selector], "\n");
+                        //ofLog() << ofJoinString(blocks[selector], "\n");
                         blockOpen = false;
                         
                         keys.push_back(selector);
@@ -268,6 +275,115 @@ namespace SUI {
         }
         
         return blocks;
+    };
+    
+    static map<string, map<string,string>> GetActionsStr(vector<string> lines){
+        ofLog() << "GetActionsStr(): " << ofJoinString(lines, " ");
+        vector<string> keys;
+        map<string, map<string,string>> actions;
+        map<string, vector<string>> blocks = GetBlocks(lines);
+        vector <string> strLines;
+        
+        
+        string selector;
+        bool blockOpen = false;
+        bool commentOpen = false;
+        
+        int blockOpenCount = 0;
+        int commentOpenCount = 0;
+        
+        for (auto it=blocks.begin(); it!=blocks.end(); ++it){
+            map<string, string> tempActions;
+            string name = it->first;
+            ofLog() << "block START: " << name;
+            if ( name == "[[-keys-]]" ) continue;
+            for (auto line : it->second){
+                
+                string l = ofJoinString(ofSplitString(line," "), "");
+                l = ofJoinString(ofSplitString(l,"\n"), "");
+                l = ofJoinString(ofSplitString(l,"\t"), "");
+                
+                //string l = line;
+                
+                //ofLog() << "––– " << l;
+                
+                // skip comments
+                if ( line.find("//") == 0 ) continue;
+                if ( !commentOpen ) {
+                    if ( line.find("/*") == 0 ) {
+                        commentOpen = true;
+                        commentOpenCount = 1;
+                        continue;
+                    }
+                } else {
+                    if ( line.find("*/") != string::npos ){
+                        commentOpenCount--;
+                        
+                        if ( commentOpenCount == 0 ){
+                            commentOpen = false;
+                        }
+                        
+                        continue;
+                    } else if ( line.find("/*") != string::npos ){
+                        commentOpenCount++;
+                        continue;
+                    }
+                }
+                
+                //
+                
+                if ( !blockOpen ){
+                    if ( l.find("[") != string::npos && l.find("]") == string::npos ){
+                        selector = l.substr(0, l.find("[")-1 );
+                        blockOpen = true;
+                        blockOpenCount = 1;
+                        strLines = vector<string>();
+                        //ofLog() << "+++ BLOCK OPEN +++";
+                    } else if ( (l.find("[") != string::npos && l.find("]") != string::npos) || (l.find("{") != string::npos && l.find("}") != string::npos) ) {
+                        
+                        selector = l.substr(0, l.find(":"));
+                        tempActions[selector] = l.substr(l.find(":")+1);
+                        ofLog() << "[Action] " << selector << "   " << tempActions[selector];
+                    }
+                } else {
+                    
+                    
+                    if ( l.find("[") != string::npos && l.find("]") != string::npos ){
+                        strLines.push_back(l);
+                        //actions[selector] = l;
+                        //ofLog() << "[Action] " << selector << "   " << actions[selector];
+                    } else if ( l.find("[") != string::npos ){
+                        strLines.push_back(l);
+                        //ofLog() << blockOpenCount << "++";
+                        blockOpenCount++;
+                    } else if ( l.find("]") != string::npos ){
+                        //ofLog() << blockOpenCount << "--";
+                        blockOpenCount--;
+                        if ( blockOpenCount == 0 ){
+                            //ofLog() << "--- BLOCK CLOSED ---";
+                            
+                            //blocks[selector] = vector<string>(strLines);
+                            blockOpen = false;
+                            
+                            //keys.push_back(selector);
+                            tempActions[selector] = ofJoinString(strLines, " ");
+                            ofLog() << "[Action] " << selector << "   " << tempActions[selector];
+                            //blocks["[[-keys-]]"] = keys;
+                            
+                        } else {
+                            strLines.push_back(l);
+                        }
+                    } else {
+                        strLines.push_back(l);
+                    }
+                }
+            }
+            actions[it->first] = tempActions;
+            ofLog() << "[Copiled] " << name;
+        }
+        
+        ofLog() << "GetActionsStr() DONE =================";
+        return actions;
     };
     
     
@@ -365,70 +481,34 @@ namespace SUI {
         }
     };
     
-    class TweenParams {
-    public:
-        ~TweenParams(){};
-        TweenParams(){};
-        
-        float duration = .5;
-        string easing = "Quad.easeOut";
-        
-        vector<string> onComplete = vector<string>();
-        vector<string> onStart = vector<string>();
-    };
+    class Element;
     
-    
-    
-    
-    
-    class Action : public AnimatableParams, public TweenParams{
+    class Action {
     public:
         ~Action(){};
         Action(){};
         
         string id;
+        map<string,string> subactions;
         
-        void Parse(vector<string> params){
-            ofLog() << "================";
+        void Parse(map<string,string> subactions){
+            /*actions = vector<string>();
+            for (auto it=subactions.begin(); it!=subactions.end(); ++it){
+                //ofLog() << "subaction:" << it->first << ">" << it->second;
+                actions.push_back(it->second);
+            }*/
             
-            for (auto line : params){
-                ofLog() << line;
-                vector<string> keyValue = vector<string>(2);
-                int startPos = line.find_first_of(":");
-                string str = line;
-                keyValue[0] = str.substr(0,startPos);
-                keyValue[1] = str.substr(startPos+1);
-                keyValue[1] = ofJoinString(ofSplitString(keyValue[1],";"), "");
-                //ofLog() << keyValue[0] << ":" << keyValue[1];
-                //return;
-                if ( keyValue[0] == "background-color" ){
-                    /*if ( keyValue[1].find("#") != string::npos ){
-                        string col = ofJoinString(ofSplitString(keyValue[1],"#"), "");
-                        float floatColor = stoul(col, nullptr, 16);
-                        backgroundColor.setHex(floatColor);
-                    }*/
-                } else if ( keyValue[0] == "width" ){
-                    width = ofToInt(keyValue[1]);
-                } else if ( keyValue[0] == "height" ){
-                    height = ofToInt(keyValue[1]);
-                } else if ( keyValue[0] == "x" ){
-                    x = ofToInt(keyValue[1]);
-                } else if ( keyValue[0] == "y" ){
-                    y = ofToInt(keyValue[1]);
-                } else if ( keyValue[0] == "duration" ){
-                    duration = ofToFloat(keyValue[1]);
-                } else if ( keyValue[0] == "easing" ){
-                    //duration = ofToFloat(keyValue[1]);
-                } else if ( keyValue[0] == "oncomplete" ){
-                    onComplete = vector<string>();
-                    string s = ofJoinString(ofSplitString(keyValue[1],"["), "");
-                    s = ofJoinString(ofSplitString(s,"]"), "");
-                    s = ofJoinString(ofSplitString(s,"\""), "");
-                    onComplete = ofSplitString(s,",");
-                    ofLog() << ofJoinString(onComplete, " || ");
-                }
-                
+            this->subactions = subactions;
+            
+            for (auto it=subactions.begin(); it!=subactions.end(); ++it){
+                ofLog() << "[subaction] " << it->first << " > " << it->second;
             }
+        }
+        
+        void Run(Element& el);
+        
+    private:
+        void _Parse(string action){
             
         }
         
@@ -440,57 +520,16 @@ namespace SUI {
         Actions(){};
         
         map<string, vector<string>> blocks;
-        map<string, Action> actionsMap;
+        map<string, Action> items;
         
-        void Parse(vector<string> rawActions){
-            ofLog() << "rawActions: " << ofJoinString(rawActions, "");
-            
-            vector <string> strLines;
-            string selector;
-            bool blockOpen = false;
-            int openCount = 0;
-            
-            for (auto line : rawActions){
-                if ( !blockOpen ){
-                    if ( line.find("{") != string::npos ){
-                        selector = line.substr(1, line.find("{")-2);
-                        blockOpen = true;
-                        openCount = 1;
-                        strLines = vector<string>();
-                    }
-                } else {
-                    
-                    
-                    if ( line.find("{") != string::npos ){
-                        openCount++;
-                        strLines.push_back(line);
-                    } else if ( line.find("}") != string::npos ){
-                        openCount--;
-                        if ( openCount == 0 ){
-                            blocks[selector] = vector<string>(strLines);
-                            ofLog() << "Action: " << selector << "  lines:" << blocks[selector].size();
-                            ofLog() << ofJoinString(blocks[selector], " ");
-                            blockOpen = false;
-                        } else {
-                            strLines.push_back(line);
-                        }
-                        
-                    } else {
-                        strLines.push_back(line);
-                    }
-                }
+        Action& Get(string id){
+            ofLog() << "Action.Get(): " << id << "  size:" << items.size();
+            for (auto it=items.begin(); it!=items.end(); ++it){
+                ofLog() << "• " << it->first;
             }
-            
-            for (auto it=blocks.begin(); it!=blocks.end(); ++it){
-                Action action;
-                action.id = it->first;
-                action.Parse(it->second);
-                
-                actionsMap[it->first] = action;
-                
-            }
-            
+            return items[id];
         }
+        
     };
     
     class Style : public AnimatableParams {
@@ -723,6 +762,18 @@ namespace SUI {
         }
     }
     
+    static void ParseActions(Actions& actions, map<string, map<string,string>> lines){
+        for (auto it=lines.begin(); it!=lines.end(); ++it){
+            //ofLog() << it->first << ":" << it->second;
+            /*for (auto actionIt=it->second.begin(); actionIt!=it->second.end(); ++actionIt){
+                
+            }*/
+            string id = it->first;
+            id = CleanArrayBrackets(id);
+            actions.items[id].Parse(it->second);
+        }
+    }
+    
     class StyleBaseParams: public Style {
     public:
         ~StyleBaseParams(){};
@@ -786,6 +837,8 @@ namespace SUI {
             stateStyles[2] = s2;
         };
         
+        Actions actions;
+        
         StyleSheet* stylesheet = NULL;
         
         void Bind(StyleSheet& stylesheet);
@@ -833,9 +886,14 @@ namespace SUI {
             baseStyle.ResetBase();
         }
         
+        void RunAction(string id, Element& el){
+            actions.Get(id).Run(el);
+        }
+        
         void ParseBlocks(){
             Reset();
-            ParseStyle( baseStyle, GetStyles(blocks["-render"]) );
+            if ( blocks.count("-render") != 0 ) ParseStyle( baseStyle, GetStyles(blocks["-render"]) );
+            if ( blocks.count("-actions") != 0 ) ParseActions( actions, GetActionsStr(blocks["-actions"]) );
         }
         
         
@@ -937,6 +995,7 @@ namespace SUI {
     };
     
     class Tween;
+    class Canvas;
     
     class Element : public StyleRenderParams, public Style {
     public:
@@ -945,7 +1004,7 @@ namespace SUI {
             //delete stylesheet;
         };
         
-        Element(StyleSelector& styleSelector, string id = ""):styleSelector(styleSelector){
+        Element(StyleSelector& styleSelector, string id, Canvas& canvas):styleSelector(styleSelector),canvas(canvas){
             this->id = id;
             ofAddListener(styleSelector.onUpdate, this, &Element::UpdateStyle);
             Refresh();
@@ -957,6 +1016,7 @@ namespace SUI {
         Actions actions;
         CustomParams params;
         StyleSelector& styleSelector;
+        Canvas& canvas;
         Element* parent = NULL;
         
         Element* GetParent(){
@@ -973,6 +1033,10 @@ namespace SUI {
         void StopTween();
         
         void StoreTween(Tween* tween);
+        
+        void RunAction(string id){
+            styleSelector.RunAction(id, *this);
+        }
         
         /*void CopyInlineStyles(){
             if ( !isnan(inlineStyle.x) ) x = inlineStyle.x;
@@ -1262,6 +1326,11 @@ namespace SUI {
         
     };
     
+    struct suiCanvasEventArgs {
+        string id;
+        
+        suiCanvasEventArgs(string id):id(id){};
+    };
     
     class Canvas {
     public:
@@ -1279,7 +1348,7 @@ namespace SUI {
         StyleSheet* stylesheet = NULL;
         
         CustomParams global;
-        
+        ofEvent<suiCanvasEventArgs> onTrigger;
         
         bool ElementExists(string id){
             for (auto it=elements.begin(); it!=elements.end(); ++it){
@@ -1295,6 +1364,13 @@ namespace SUI {
             return NULL;
         }
         
+        void TriggerEvent(string id){
+            suiCanvasEventArgs args(id);
+            ofNotifyEvent(onTrigger, args, this);
+        };
+        
+        
+        
         /*Element& AddElement(){
             Element el;
             elements.push_back(el);
@@ -1309,7 +1385,7 @@ namespace SUI {
         
         Element& AddElement(StyleSheet& stylesheet, string selector, string id){
             if ( !stylesheet.HasSelector(selector) ) return;
-            Element* el = new Element(stylesheet.GetSelector(selector), id );
+            Element* el = new Element(stylesheet.GetSelector(selector), id, *this );
             //elements.push_back(el);
             elements[id] = el;
             return *elements[id];
@@ -1319,7 +1395,7 @@ namespace SUI {
         Element& AddElement(string selector, string id){
             ofLog() << "[Add Element]  selector:" << selector << "  id:" << id;
             if ( !stylesheet->HasSelector(selector) ) return;
-            Element* el = new Element(stylesheet->GetSelector(selector), id );
+            Element* el = new Element(stylesheet->GetSelector(selector), id, *this );
             //elements.push_back(el);
             //return *elements.back();
             elements[id] = el;
