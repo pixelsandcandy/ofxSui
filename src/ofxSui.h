@@ -48,6 +48,45 @@ namespace SUI {
         ANCHOR_CENTER_BOTTOM
     };
     
+    enum Event {
+        SUI_EVENT_MOUSE_OVER,
+        SUI_EVENT_MOUSE_OUT,
+        SUI_EVENT_MOUSE_ENTER,
+        SUI_EVENT_MOUSE_EXIT,
+        SUI_EVENT_MOUSE_PRESSED,
+        SUI_EVENT_MOUSE_MOVED,
+        SUI_EVENT_MOUSE_DRAGGED,
+        SUI_EVENT_MOUSE_RELEASED,
+        SUI_EVENT_MOUSE_CLICK,
+        SUI_EVENT_MOUSE_DOUBLE_CLICK,
+        
+        SUI_EVENT_TOUCH_DOWN,
+        SUI_EVENT_TOUCH_UP,
+        SUI_EVENT_TOUCH_TAP,
+        SUI_EVENT_TOUCH_DOUBLE_TAP,
+        
+        SUI_EVENT_STATE_CHANGE,
+        SUI_EVENT_TEXT_CHANGE,
+        SSUI_EVENT_VALUE_CHANGE,
+        SUI_EVENT_SLIDER_VALUE_CHANGE,
+        SUI_EVENT_TOGGLE_CHANGE,
+        SUI_EVENT_SUBMIT,
+        
+        SUI_EVENT_FOCUS,
+        SUI_EVENT_UNFOCUS,
+        
+        SUI_EVENT_ANIMATE_COMPLETE,
+        SUI_EVENT_ANIMATE_STEP,
+        SUI_EVENT_ANIMATE_START
+        
+#ifdef USING_ofxTouchPadScroll
+        ,SUI_EVENT_TOUCHPAD_SCROLL_START
+        ,SUI_EVENT_TOUCHPAD_SCROLL
+        ,SUI_EVENT_TOUCHPAD_SCROLL_END
+        ,SUI_EVENT_TOUCHPAD_SCROLL_INERTIA
+#endif
+    };
+    
     static string CleanString(string s, bool removeSpaces = false, bool removeTrailingComma = true){
         if ( removeSpaces ) s = ofJoinString(ofSplitString(s," "), "");
         if ( removeTrailingComma ) {
@@ -713,6 +752,7 @@ namespace SUI {
     struct suiStyleSheetArgs;
     
     struct suiStyleSelectorArgs;
+    struct suiTweenArgs;
     
     class BlocksBase {
     public:
@@ -896,7 +936,7 @@ namespace SUI {
         suiStyleSheetArgs(StyleSheet &stylesheet):stylesheet(stylesheet){}
     };
     
-    
+    class Tween;
     
     class Element : public StyleRenderParams, public Style {
     public:
@@ -917,6 +957,22 @@ namespace SUI {
         Actions actions;
         CustomParams params;
         StyleSelector& styleSelector;
+        Element* parent = NULL;
+        
+        Element* GetParent(){
+            return parent;
+        }
+        
+        template <typename ArgumentsType, class ListenerClass>
+        Tween* Animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) );
+        
+        Tween* Animate( float timeSeconds, string params );
+        
+        Tween* tween = NULL;
+        
+        void StopTween();
+        
+        void StoreTween(Tween* tween);
         
         /*void CopyInlineStyles(){
             if ( !isnan(inlineStyle.x) ) x = inlineStyle.x;
@@ -1032,6 +1088,10 @@ namespace SUI {
             
             //CopyInlineStyles();
         }
+        
+        
+        
+        
         
         
         
@@ -1162,6 +1222,7 @@ namespace SUI {
         }
         
     private:
+        friend class Tween;
         ofRectangle boundingRect;
         
         void UpdateStyle(suiStyleSelectorArgs& args){
@@ -1185,6 +1246,18 @@ namespace SUI {
         
         void ParseActions(SUI::Style style){
             //actions.Parse(style.GetRawActions());
+        }
+        
+        void Update(){
+            
+            if ( (fbo.isAllocated() && (width != fbo.getWidth() || height != fbo.getHeight())) || !fbo.isAllocated() ){
+                fbo.allocate( width, height, GL_RGBA );
+                fbo.begin();
+                ofClear(0);
+                fbo.end();
+            }
+            
+            Render();
         }
         
     };
@@ -1256,9 +1329,11 @@ namespace SUI {
         //
         
         
-        void Update(ofEventArgs & args){}
+        void Update(ofEventArgs & args){
+            Update();
+        }
         
-        void Update(){};
+        void Update();
         
         void Render(){};
         
@@ -1339,6 +1414,117 @@ namespace SUI {
         
         
     };
+    
+    
+    struct suiTweenArgs;
+    
+    class Tween : public AnimatableParams {
+    public:
+        ~Tween(){};
+        Tween(){
+            valueNames.clear();
+        };
+        
+        string id = "";
+        
+        string GetID() {
+            return id;
+        }
+        
+        ofEvent<suiTweenArgs> onComplete;
+        ofEvent<suiTweenArgs> onStart;
+        ofEvent<suiTweenArgs> onStep;
+        
+        int UID = abs((int)ofRandom(7, 7777777777));
+        
+        float delay = 0.0;
+        float startTime = 0.0;
+        float endTime = 0.0;
+        float duration = 0.0;
+        float perc = 0.0;
+        
+        float GetPercentCompleted(){
+            return perc;
+        }
+        
+        float GetProgress(){
+            return perc;
+        }
+        
+        vector<string> valueNames = vector<string>();
+        map<string, float> endValues;
+        map<string, float> startValues;
+        
+        std::function<float(float,float,float,float)> ease = ofxeasing::linear::easeNone;
+        
+        Element* el;
+        bool active = false;
+        
+        string cmd;
+        bool firstStep = false;
+        
+        void Start( Element* el, float timeSeconds, string params );
+        void Stop();
+        void Update( float currTime );
+        void UpdateValues();
+        void StoreValue( string param, string val );
+        void StoreValue( string param, float val );
+        void StoreStartValues();
+        void SetID( string name ){
+            id = name;
+        }
+        
+        
+        template <typename ArgumentsType, class ListenerClass>
+        void StoreComplete( ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&)){
+            
+        }
+        
+        
+    };
+    
+    
+    
+    
+    extern vector<Tween*> tweens;
+    
+    Tween* Animate( Element* el, float timeSeconds, string params );
+    
+    template <typename ArgumentsType, class ListenerClass>
+    static Tween* Animate( Element* el, float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
+        
+        Tween *t = new Tween();
+        t->StoreComplete( listener, listenerMethod );
+        
+        ofAddListener( t->onComplete, listener, listenerMethod );
+        
+        t->Start( el, timeSeconds, params );
+        
+        tweens.push_back( t );
+        return t;
+    }
+    
+    extern vector<Tween*> tweensToDestroy;
+    
+    static void ShouldDestroyTween( Tween* t ){
+        tweensToDestroy.push_back( t );
+    }
+    
+    static void DestroyTween(const Tween* t){
+        /*int index = 0;
+         for ( vector<Tween*>::iterator it = tweens.begin(); it != tweens.end(); it++ ){
+         if ( (*it) == t ){
+         //ofLog() << "found tween - destroying...";
+         t = nullptr;
+         tweens.erase( tweens.begin() + index );
+         return;
+         }
+         index++;
+         }*/
+        
+        auto it = std::find(tweens.begin(), tweens.end(), t);
+        if (it != tweens.end()) { tweens.erase(it); }
+    }
     
 }
 
