@@ -1200,22 +1200,24 @@ namespace SUI {
         
         //
         
-        vector<Element*> elements;
+        //vector<Element*> elements;
+        map<string, Element*> elements = map<string, Element*>();
+        vector<string> renderElements = vector<string>();
         StyleSheet* stylesheet = NULL;
         
         CustomParams global;
         
         
         bool ElementExists(string id){
-            for (auto element : elements ){
-                if ( element->id == id ) return true;
+            for (auto it=elements.begin(); it!=elements.end(); ++it){
+                if ( it->second->id == id ) return true;
             }
             return false;
         }
         
         Element* GetElementById(string id){
-            for (auto element : elements ){
-                if ( element->id == id ) return element;
+            for (auto it=elements.begin(); it!=elements.end(); ++it){
+                if ( it->second->id == id ) return it->second;
             }
             return NULL;
         }
@@ -1232,19 +1234,23 @@ namespace SUI {
             return elements.back();
         }*/
         
-        Element& AddElement(StyleSheet& stylesheet, string selector, string id = ""){
+        Element& AddElement(StyleSheet& stylesheet, string selector, string id){
             if ( !stylesheet.HasSelector(selector) ) return;
             Element* el = new Element(stylesheet.GetSelector(selector), id );
-            elements.push_back(el);
-            return *elements.back();
+            //elements.push_back(el);
+            elements[id] = el;
+            return *elements[id];
+            //return *elements.back();
         }
         
-        Element& AddElement(string selector, string id = ""){
-            ofLog() << "[Add Element] " << selector;
+        Element& AddElement(string selector, string id){
+            ofLog() << "[Add Element]  selector:" << selector << "  id:" << id;
             if ( !stylesheet->HasSelector(selector) ) return;
             Element* el = new Element(stylesheet->GetSelector(selector), id );
-            elements.push_back(el);
-            return *elements.back();
+            //elements.push_back(el);
+            //return *elements.back();
+            elements[id] = el;
+            return *elements[id];
         }
         
         //
@@ -1267,14 +1273,18 @@ namespace SUI {
         
         void MakeElements(){
             map<string, vector<string>> blocks = GetBlocks(stylesheet->GetBlock("[elements]"));
+            renderElements = vector<string>();
             
             for ( auto key : blocks["[[-keys-]]"] ){
                 string selector = CleanSelector(key);
                 vector<string> nameSelector = ofSplitString(selector, ":");
                 
+                
+                
                 vector<string> styles = GetStyles(blocks[key]);
                 
                 ofLog() << "[Make] " << nameSelector[0] << ":" << nameSelector[1];
+                renderElements.push_back(nameSelector[0]);
                 
                 if ( ElementExists(nameSelector[0]) ) {
                     Element* el = GetElementById(nameSelector[0]);
@@ -1304,8 +1314,13 @@ namespace SUI {
         
         void Draw(){
             //for (auto element : boost::adaptors::reverse(elements) ){
-            for (auto element : elements ){
+            /*for (auto element : elements ){
                 element->Draw();
+            }*/
+            
+            for (auto elementId : renderElements ){
+                //ofLog() << elementId;
+                if ( elements[elementId] != NULL ) elements[elementId]->Draw();
             }
         };
         
