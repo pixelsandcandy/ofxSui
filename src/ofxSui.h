@@ -34,11 +34,16 @@ namespace SUI {
         selector = ofJoinString(ofSplitString(selector,"["), "");
         selector = ofJoinString(ofSplitString(selector,"]"), "");
         return selector;
-    }
+    };
     
     static string CleanArrayBrackets(string str){
         str = ofJoinString(ofSplitString(str, "["), "" );
         str = ofJoinString(ofSplitString(str, "]"), "" );
+        return str;
+    };
+    
+    static string CleanSemiColon(string str){
+        str = ofJoinString(ofSplitString(str, ";"), "" );
         return str;
     }
     
@@ -52,6 +57,11 @@ namespace SUI {
         ANCHOR_CENTER_TOP,
         ANCHOR_CENTER_CENTER,
         ANCHOR_CENTER_BOTTOM
+    };
+    
+    enum CanvasEvent {
+        CANVAS_EVENT_TRIGGER,
+        CANVAS_EVENT_LOADED
     };
     
     enum Event {
@@ -125,7 +135,7 @@ namespace SUI {
         int blockOpenCount = 0;
         int commentOpenCount = 0;
         
-        for (auto line : lines){
+        for (auto& line : lines){
             
             string l = ofJoinString(ofSplitString(line," "), "");
             l = ofJoinString(ofSplitString(l,"\n"), "");
@@ -198,7 +208,7 @@ namespace SUI {
         int blockOpenCount = 0;
         int commentOpenCount = 0;
         
-        for (auto line : lines){
+        for (auto& line : lines){
             
             string l = ofJoinString(ofSplitString(line," "), "");
             l = ofJoinString(ofSplitString(l,"\n"), "");
@@ -297,7 +307,7 @@ namespace SUI {
             string name = it->first;
             ofLog() << "block START: " << name;
             if ( name == "[[-keys-]]" ) continue;
-            for (auto line : it->second){
+            for (auto& line : it->second){
                 
                 string l = ofJoinString(ofSplitString(line," "), "");
                 l = ofJoinString(ofSplitString(l,"\n"), "");
@@ -389,7 +399,7 @@ namespace SUI {
     
     static map<string, vector<string>> GetBlocks(ofBuffer buffer){
         vector<string> lines;
-        for (auto line : buffer.getLines()){
+        for (auto& line : buffer.getLines()){
             lines.push_back(line);
         }
         return GetBlocks(lines);
@@ -398,7 +408,7 @@ namespace SUI {
     static void ParseCustomParams(SUI::CustomParams& params, map<string, vector<string>> blocks){
         vector<string> lines = GetStyles( blocks["-params"] );
         
-        for (auto line : lines ){
+        for (auto& line : lines ){
             //ofLog() << line;
             vector<string> keyValue = vector<string>(2);
             line = CleanString(line);
@@ -424,7 +434,7 @@ namespace SUI {
     
     static void ParseCustomParams(SUI::CustomParams& params, vector<string> lines){
         
-        for (auto line : lines ){
+        for (auto& line : lines ){
             //ofLog() << line;
             vector<string> keyValue = vector<string>(2);
             line = CleanString(line);
@@ -624,6 +634,10 @@ namespace SUI {
             hasBackgroundColor = true;
         }
         
+        void RemoveBackgroundColor(){
+            hasBackgroundColor = false;
+        }
+        
         void MergeStyles(Style& style, bool force = false ){
             if ( !force ) {
                 if ( isnan(x) ) x = style.x;
@@ -681,7 +695,7 @@ namespace SUI {
     };
     
     static void ParseStyle(Style& style, vector<string> lines){
-        for ( auto line : lines ){
+        for ( auto& line : lines ){
             //ofLog() << "s << " << s;
             if ( line.find("{") == string::npos && line.find("}") == string::npos && line != "" ){
                 vector<string> keyValue = ofSplitString(line, ":");
@@ -732,7 +746,7 @@ namespace SUI {
                     
                 } else if ( keyValue[0] == "opacity" ){
                     style.opacity = ofToFloat(keyValue[1]);
-                } else if ( keyValue[0] == "rotation" ){
+                } else if ( keyValue[0] == "rotation" || keyValue[0] == "rotate" ){
                     style.rotation = ofToFloat(keyValue[1]);
                 } else if ( keyValue[0] == "width" ){
                     style.width = ofToInt(keyValue[1]);
@@ -931,7 +945,7 @@ namespace SUI {
             
             
             for (auto it=blocks.begin(); it!=blocks.end(); ++it){
-                if ( it->first != "[global]" && it->first != "[elements]" ){
+                if ( it->first != "[canvas]" && it->first != "[elements]" ){
                     if ( selectors.count(it->first) ){
                         selectors[it->first]->blocks = GetBlocks(it->second);
                         selectors[it->first]->ParseBlocks();
@@ -956,6 +970,8 @@ namespace SUI {
             //ofLog() << "StyleSheet.Load(): " << data;
             
             
+            ParseSettings( GetBlocks(GetBlock("[canvas]"))["-settings"] );
+            
             
             if ( !liveReloading && SUI::settings.liveReload == true ) {
                 nextUpdateTime = ofGetElapsedTimef() + updateInterval;
@@ -964,6 +980,19 @@ namespace SUI {
             }
             
             fileTime = std::filesystem::last_write_time(ofToDataPath(filepath));
+        }
+        
+        void ParseSettings(vector<string> lines){
+            ofLog() << "ParseSettings()";
+            for (auto& line : lines ){
+                string l = CleanSemiColon(line);
+                vector<string> keyValue = ofSplitString(l,":");
+                ofLog() << keyValue[0] << " > " << keyValue[1];
+                if ( keyValue[0] == "live-reload" && keyValue[1] == "true" ){
+                    LiveReload(true);
+                }
+                //ofLog() << line;
+            }
         }
         
         StyleSelector& GetSelector(string selector){
@@ -997,7 +1026,7 @@ namespace SUI {
     class Tween;
     class Canvas;
     
-    class Element : public StyleRenderParams, public Style {
+    class Element : public StyleRenderParams, public Style, public CustomParams {
     public:
         ~Element(){
             //stylesheet = 0;
@@ -1014,7 +1043,7 @@ namespace SUI {
         string selector;
         
         Actions actions;
-        CustomParams params;
+        //CustomParams params;
         StyleSelector& styleSelector;
         Canvas& canvas;
         Element* parent = NULL;
@@ -1082,6 +1111,18 @@ namespace SUI {
             return *this;
         }
         
+        Element& SetWidth(float w){
+            width = w;
+            UpdateStyle();
+            return *this;
+        }
+        
+        Element& SetHeight(float h){
+            height = h;
+            UpdateStyle();
+            return *this;
+        }
+        
         Element& SetBackgroundColor(string hexString){
             //inlineStyle.SetBackgroundColor(hexString);
             Style::SetBackgroundColor(hexString);
@@ -1122,8 +1163,8 @@ namespace SUI {
         }
         
         void Refresh(){
-            ParseCustomParams(params, styleSelector.blocks );
-            ofLog() << "pings:" << params.ints["pings"];
+            ParseCustomParams(*this, styleSelector.blocks );
+            //ofLog() << "pings:" << params.ints["pings"];
             UpdateStyle();
         }
         
@@ -1134,12 +1175,13 @@ namespace SUI {
             MergeStyles(inlineStyle, true);
             MergeStyles(compiledStyle);
             
-            
-            if ( (fbo.isAllocated() && (width != fbo.getWidth() || height != fbo.getHeight())) || !fbo.isAllocated() ){
-                fbo.allocate( width, height, GL_RGBA );
-                fbo.begin();
-                ofClear(0);
-                fbo.end();
+            if ( width >= 1.0 && height >= 1.0 ){
+                if ( (fbo.isAllocated() && (width != fbo.getWidth() || height != fbo.getHeight())) || !fbo.isAllocated() ){
+                    fbo.allocate( (int)width, (int)height, GL_RGBA );
+                    fbo.begin();
+                    ofClear(0);
+                    fbo.end();
+                }
             }
             
             
@@ -1164,6 +1206,7 @@ namespace SUI {
         }
         
         void Render(){
+            if ( width <= 1.0 || height <= 1.0 ) return;
             fbo.begin();
             ofClear(0);
             
@@ -1172,7 +1215,7 @@ namespace SUI {
                 ofDrawRectangle(0, 0, width, height);
             }
             
-            
+            ofEnableAlphaBlending();
             ofSetColor(255);
             if ( backgroundImage != "" ) {
                 
@@ -1201,7 +1244,9 @@ namespace SUI {
         void Draw(float offsetX = 0.0, float offsetY = 0.0){
             //compiledStyle.DebugLog();
             
-            
+            if ( width != fbo.getWidth() || height != fbo.getHeight() ){
+                Update();
+            }
             
             //ofLog() << isnan(position.x);
             //ofTranslate(position.x, position.y);
@@ -1270,17 +1315,21 @@ namespace SUI {
             boundingRect.width = width;
             boundingRect.height = height;
             
-            //ofLog() << boundingRect;
-            ofEnableAlphaBlending();
             
-            ofPushView();
-            //ofTranslate(boundingRect.x, boundingRect.y);
-            ofTranslate(x, y);
-            ofRotate(rotation);
-            //ofTranslate();
-            ofSetColor(255,255,255, 255.0*opacity);
-            fbo.draw(boundingRect.x-x, boundingRect.y-y);
-            ofPopView();
+            if ( width >= 1.0 && height >= 1.0 ) {
+                //ofLog() << boundingRect;
+                ofEnableAlphaBlending();
+                
+                ofPushView();
+                //ofTranslate(boundingRect.x, boundingRect.y);
+                ofTranslate(x, y);
+                ofRotate(rotation);
+                //ofTranslate();
+                ofSetColor(255,255,255, 255.0*opacity);
+                fbo.draw(boundingRect.x-x, boundingRect.y-y);
+                ofPopView();
+            }
+            
             
             ofSetColor(255);
         }
@@ -1313,26 +1362,28 @@ namespace SUI {
         }
         
         void Update(){
+            if ( width >= 1.0 && height >= 1.0 ) {
+                if ( (fbo.isAllocated() && (width != fbo.getWidth() || height != fbo.getHeight())) || !fbo.isAllocated() ){
+                    fbo.allocate( (int)width, (int)height, GL_RGBA );
+                    fbo.begin();
+                    ofClear(0);
+                    fbo.end();
+                }
             
-            if ( (fbo.isAllocated() && (width != fbo.getWidth() || height != fbo.getHeight())) || !fbo.isAllocated() ){
-                fbo.allocate( width, height, GL_RGBA );
-                fbo.begin();
-                ofClear(0);
-                fbo.end();
+                Render();
             }
-            
-            Render();
         }
         
     };
     
     struct suiCanvasEventArgs {
-        string id;
+        CanvasEvent type;
+        string triggerId;
         
-        suiCanvasEventArgs(string id):id(id){};
+        suiCanvasEventArgs(CanvasEvent type):type(type){};
     };
     
-    class Canvas {
+    class Canvas: public CustomParams {
     public:
         ~Canvas(){
             stylesheet = 0;
@@ -1347,26 +1398,49 @@ namespace SUI {
         vector<string> renderElements = vector<string>();
         StyleSheet* stylesheet = NULL;
         
-        CustomParams global;
+        //CustomParams global;
         ofEvent<suiCanvasEventArgs> onTrigger;
+        ofEvent<suiCanvasEventArgs> onLoaded;
         
         bool ElementExists(string id){
+            bool found = false;
+            for (auto& elementId : renderElements ){
+                if ( elementId == id ) found = true;
+            }
+            
+            if ( !found ) return false;
+            
             for (auto it=elements.begin(); it!=elements.end(); ++it){
-                if ( it->second->id == id ) return true;
+                if ( it->second->id == id ) {
+                    return true;
+                }
             }
             return false;
         }
         
         Element* GetElementById(string id){
+            bool found = false;
+            for (auto& elementId : renderElements ){
+                if ( elementId == id ) found = true;
+            }
+            
+            if ( !found ) return NULL;
+            
             for (auto it=elements.begin(); it!=elements.end(); ++it){
                 if ( it->second->id == id ) return it->second;
             }
             return NULL;
         }
         
-        void TriggerEvent(string id){
-            suiCanvasEventArgs args(id);
+        void EmitTriggerEvent(string id){
+            suiCanvasEventArgs args(CANVAS_EVENT_TRIGGER);
+            args.triggerId = id;
             ofNotifyEvent(onTrigger, args, this);
+        };
+        
+        void EmitLoadedEvent(){
+            suiCanvasEventArgs args(CANVAS_EVENT_LOADED);
+            ofNotifyEvent(onLoaded, args, this);
         };
         
         
@@ -1426,7 +1500,7 @@ namespace SUI {
             map<string, vector<string>> blocks = GetBlocks(stylesheet->GetBlock("[elements]"));
             renderElements = vector<string>();
             
-            for ( auto key : blocks["[[-keys-]]"] ){
+            for ( auto& key : blocks["[[-keys-]]"] ){
                 string selector = CleanSelector(key);
                 vector<string> nameSelector = ofSplitString(selector, ":");
                 
@@ -1461,6 +1535,8 @@ namespace SUI {
                     ofLog() << " ";
                 }
             }
+            
+            EmitLoadedEvent();
         }
         
         void Draw(){
@@ -1469,7 +1545,7 @@ namespace SUI {
                 element->Draw();
             }*/
             
-            for (auto elementId : renderElements ){
+            for (auto& elementId : renderElements ){
                 //ofLog() << elementId;
                 if ( elements[elementId] != NULL ) elements[elementId]->Draw();
             }
@@ -1483,7 +1559,7 @@ namespace SUI {
         
         void ReloadData(){
             MakeElements();
-            ParseCustomParams(global, GetBlocks(stylesheet->GetBlock("[global]")));
+            ParseCustomParams(*this, GetBlocks(stylesheet->GetBlock("[canvas]")));
         }
         
         

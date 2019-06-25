@@ -7,6 +7,9 @@ namespace SUI {
     vector<Tween*> tweensToDestroy;
     
     void LiveReload(bool reload){
+        ofLog() << "============================";
+        ofLog() << "LiveReload -----------------";
+        ofLog() << "============================";
         settings.liveReload = reload;
     };
     
@@ -339,7 +342,7 @@ namespace SUI {
                 el.Animate(duration, params);
             } else if (it->first == "commands"){
                 vector<string> commands = ofSplitString(CleanArrayBrackets(it->second), ",");
-                for (auto command : commands){
+                for (auto& command : commands){
                     ofLog() << "command > " << command;
                     if ( command.find("actions.") != string::npos ){
                         if ( command.find("(") == string::npos && command.find(")") == string::npos ){
@@ -353,7 +356,7 @@ namespace SUI {
                             el.styleSelector.RunAction(actionId, *el.canvas.GetElementById(selectorId));
                         }
                     } else if ( command.find("trigger.") != string::npos ){
-                        el.canvas.TriggerEvent( command.substr( command.find(".")+1 ) );
+                        el.canvas.EmitTriggerEvent( command.substr( command.find(".")+1 ) );
                     }
                 }
             }
