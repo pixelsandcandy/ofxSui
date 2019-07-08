@@ -7,9 +7,9 @@ namespace SUI {
     vector<Tween*> tweensToDestroy;
     
     void LiveReload(bool reload){
-        ofLog() << "============================";
+        //ofLog() << "============================";
         ofLog() << "LiveReload -----------------";
-        ofLog() << "============================";
+        //ofLog() << "============================";
         settings.liveReload = reload;
     };
     
@@ -65,11 +65,15 @@ namespace SUI {
     
     void StyleSheet::UpdateHandler(){
         //std::filesystem::last_write_time(ofToDataPath(it.second));
-        
-        if ( ofGetElapsedTimef() < nextUpdateTime ){
+        //ofLog() << ofGetElapsedTimef() << " <?" << nextUpdateTime;
+        if ( ofGetElapsedTimef() > nextUpdateTime ){
+            //ofLog() << "check file... " << ofRandomf();
             nextUpdateTime = ofGetElapsedTimef() + updateInterval;
             time_t t = std::filesystem::last_write_time(ofToDataPath(this->filepath));
+            //ofLog() << t << "  >?  " << fileTime;
             if ( t > fileTime ){
+                //ofLog() << "RELOAD FILE--------" << ofRandomf();
+                
                 fileTime = t;
                 Load(filepath);
                 suiStyleSheetArgs args(*this);
@@ -346,17 +350,17 @@ namespace SUI {
                     ofLog() << "command > " << command;
                     if ( command.find("actions.") != string::npos ){
                         if ( command.find("(") == string::npos && command.find(")") == string::npos ){
-                            el.styleSelector.RunAction(command.substr(command.find(".")+1), el);
+                            el.styleSelector->RunAction(command.substr(command.find(".")+1), el);
                         } else if (ofToString(command[0]) != "(" && command.find("(") != string::npos && command.find(")") != string::npos) {
                             string selectorId = command.substr( command.find("(")+1 );
                             selectorId = ofJoinString( ofSplitString(selectorId, ")"), "" );
                             
                             string actionId = ofSplitString(ofSplitString(command, ".")[1], "(")[0];
                             
-                            el.styleSelector.RunAction(actionId, *el.canvas.GetElementById(selectorId));
+                            el.styleSelector->RunAction(actionId, *el.canvas->GetElementById(selectorId));
                         }
                     } else if ( command.find("trigger.") != string::npos ){
-                        el.canvas.EmitTriggerEvent( command.substr( command.find(".")+1 ) );
+                        el.canvas->EmitTriggerEvent( command.substr( command.find(".")+1 ) );
                     }
                 }
             }
