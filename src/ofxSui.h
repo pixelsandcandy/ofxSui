@@ -1141,34 +1141,38 @@ namespace SUI {
         }
         
         bool HitTest(Element& element){
+            if ( element.boundingRect.x == -1 && element.boundingRect.y == -1 && element.boundingRect.width == -1 && element.boundingRect.height == -1 ) return false;
+            if ( boundingRect.x == -1 && boundingRect.y == -1 && boundingRect.width == -1 && boundingRect.height == -1 ) return false;
             
-            float dx = abs(boundingRect.x - element.boundingRect.x);
-            float dy = abs(boundingRect.y - element.boundingRect.y);
+            //if ( element.x == 0 && element.y == 0 && element.width == 0 && element.height == 0 ) return false;
+            //if ( x == 0 && y == 0 && width == 0 && height == 0 ) return false;
             
-            if ( boundingRect.y <= element.boundingRect.y ) {
-                if ( dy <= height ){
-                    if ( boundingRect.x <= element.boundingRect.x ){
-                        if ( dx <= width ) return true;
-                    } else {
-                        if ( dx <= element.width ) return true;
-                    }
+            //float dx = abs(boundingRect.x - element.boundingRect.x);
+            //float dy = abs(boundingRect.y - element.boundingRect.y);
+            
+            /*if ( boundingRect.y + height >= element.boundingRect.y || boundingRect.y <= element.boundingRect.y + height) {
+                if ( boundingRect.x + width >= element.boundingRect.x || boundingRect.x <= element.boundingRect.x + width){
+                    return true;
                 }
-            } else {
-                if ( dy <= element.height ){
-                    if ( boundingRect.x <= element.boundingRect.x ){
-                        if ( dx <= width ) return true;
-                    } else {
-                        if ( dx <= element.width ) return true;
-                    }
-                }
-            }
+            }*/
+            
+            if ( IsCornerInside(element) ) return true;
+            if ( element.IsCornerInside(*this) ) return true;
+            
+            return false;
+        }
+        
+        bool IsCornerInside(Element& element){
+            if ( IsPointInside(element.boundingRect.x, element.boundingRect.y ) ) return true;
+            if ( IsPointInside(element.boundingRect.x + element.boundingRect.width, element.boundingRect.y ) ) return true;
+            if ( IsPointInside(element.boundingRect.x, element.boundingRect.y + element.boundingRect.height ) ) return true;
+            if ( IsPointInside(element.boundingRect.x + element.boundingRect.width, element.boundingRect.y + element.boundingRect.height ) ) return true;
             
             return false;
         }
         
         bool IsPointInside(int x, int y){
-            
-            
+            if ( x >= boundingRect.x && x <= boundingRect.x + width && y >= boundingRect.y && y <= boundingRect.y + height ) return true;
             return false;
         }
         
@@ -1358,7 +1362,7 @@ namespace SUI {
         
     private:
         friend class Tween;
-        ofRectangle boundingRect;
+        ofRectangle boundingRect = ofRectangle(-1,-1,-1,-1);
         
         void UpdateStyle(suiStyleSelectorArgs& args){
             Refresh();
@@ -1403,6 +1407,10 @@ namespace SUI {
         string triggerId;
         
         suiCanvasEventArgs(CanvasEvent type):type(type){};
+    };
+    
+    struct suiElementEventArgs {
+        
     };
     
     class Canvas: public CustomParams {
@@ -1671,7 +1679,7 @@ namespace SUI {
         string cmd;
         bool firstStep = false;
         
-        void Start( Element* el, float timeSeconds, string params );
+        void Start( Element* el, float timeSeconds, string params, bool attachToElement = true );
         void Stop();
         void Update( float currTime );
         void UpdateValues();

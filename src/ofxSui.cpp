@@ -113,14 +113,19 @@ namespace SUI {
         return t;
     }
     
+    bool attachedToElement = false;
+    
     //
     
-    void Tween::Start( Element* el, float timeSeconds, string params ){
+    void Tween::Start( Element* el, float timeSeconds, string params, bool attachToElement ){
         firstStep = true;
         active = true;
         this->el = el;
-        el->StopTween();
-        el->StoreTween(this);
+        if ( attachToElement ) {
+            attachedToElement = true;
+            el->StopTween();
+            el->StoreTween(this);
+        }
         duration = timeSeconds*1000;
         
         //el->UpdateStyle();
@@ -291,7 +296,7 @@ namespace SUI {
             suiTweenArgs args2(*this, (*el), SUI_EVENT_ANIMATE_COMPLETE);
             ofNotifyEvent( onComplete, args2, this );
             
-            ShouldDestroyTween(this);
+            if ( attachedToElement ) ShouldDestroyTween(this);
         }
     }
     
