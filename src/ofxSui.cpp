@@ -35,10 +35,10 @@ namespace SUI {
         suiTweenArgs(Tween &tween, Element &element, Event eventType):tween(tween),element(element),eventType(eventType){}
     };
     
-    void Canvas::Update(){
-        float currTime = ofGetElapsedTimeMillis();
-        
+    void Update(){
         //ofLog() << "# tweens: " << tweens.size();
+        
+        float currTime = ofGetElapsedTimeMillis();
         
         int max = tweens.size();
         int i = 0;
@@ -59,6 +59,10 @@ namespace SUI {
         }
         
         tweensToDestroy.clear();
+    }
+    
+    void Canvas::Update(){
+        
     };
     
     //

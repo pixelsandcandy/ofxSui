@@ -45,6 +45,16 @@ namespace SUI {
     static string CleanSemiColon(string str){
         str = ofJoinString(ofSplitString(str, ";"), "" );
         return str;
+    };
+    
+    static void SetImage(string id, string filepath){
+        //ofLog() << "SUI::SetImage(" << id << "," << filepath << ") ---- ";
+        if ( SUI::images.count(id) == 0 ) SUI::images[id] = new ofImage();
+        SUI::images[id]->load(ofToDataPath(filepath));
+    };
+    
+    static ofImage* GetImage(string id){
+        return SUI::images[id];
     }
     
     enum AnchorPoint {
@@ -392,7 +402,7 @@ namespace SUI {
             //ofLog() << "[Copiled] " << name;
         }
         
-        ofLog() << "GetActionsStr() DONE =================";
+        //ofLog() << "GetActionsStr() DONE =================";
         return actions;
     };
     
@@ -418,7 +428,13 @@ namespace SUI {
             keyValue[1] = line.substr(index+1);
             
             if ( keyValue[0].find("(string)") != string::npos ){
-                params.strings[ keyValue[0].substr(keyValue[0].find("(string)")+8) ] = keyValue[1];
+                
+                string id = keyValue[0].substr(keyValue[0].find("(string)")+8);
+                string value = CleanString(keyValue[1]);;
+                
+                //ofLog() << "[string:" << id << "] " << value;
+                
+                params.strings[id] = value;
             } else if ( keyValue[0].find("(bool)") != string::npos ){
                 params.bools[ keyValue[0].substr(keyValue[0].find("(bool)")+6) ] = ofToBool(keyValue[1]);
             } else if ( keyValue[0].find("(int)") != string::npos ){
@@ -652,8 +668,7 @@ namespace SUI {
                 if ( isnan(backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
                 if ( backgroundImage == "" && style.backgroundImage != "" ) {
                     backgroundImage = style.backgroundImage;
-                    if ( SUI::images.count(backgroundImage) == 0 ) SUI::images[backgroundImage] = new ofImage();
-                    SUI::images[backgroundImage]->load(ofToDataPath(backgroundImage));
+                    SetImage(backgroundImage, backgroundImage);
                 }
                 if ( overflow == "" ) overflow = style.overflow;
                 if ( isnan(anchorPoint) ) anchorPoint = style.anchorPoint;
@@ -672,8 +687,7 @@ namespace SUI {
                 if ( !isnan(style.backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
                 if ( style.backgroundImage != "" ) {
                     backgroundImage = style.backgroundImage;
-                    if ( SUI::images.count(backgroundImage) == 0 ) SUI::images[backgroundImage] = new ofImage();
-                    SUI::images[backgroundImage]->load(ofToDataPath(backgroundImage));
+                    SetImage(backgroundImage, backgroundImage);
                 }
                 if ( style.overflow != "" ) overflow = style.overflow;
                 if ( !isnan(style.anchorPoint) ) anchorPoint = style.anchorPoint;
@@ -712,7 +726,7 @@ namespace SUI {
                         //float floatColor = stoul(col, nullptr, 16);
                         style.SetBackgroundColor(keyValue[1]);
                     }
-                } else if ( keyValue[0] == "anchorpoint" ){
+                } else if ( keyValue[0] == "anchorpoint" || keyValue[0] == "anchor-point" ){
                     //baseStyle.width = ofToInt(keyValue[1]);
                     string val = CleanString(ofToLower(keyValue[1]), true);
                     
@@ -763,8 +777,7 @@ namespace SUI {
                     //ofLog() << keyValue[1];
                     //ofLog() << ofToString(keyValue[1]);
                     //ofLog() << SUI::images.count(keyValue[1]);
-                    if ( SUI::images.count(keyValue[1]) == 0 ) SUI::images[style.backgroundImage] = new ofImage();
-                    SUI::images[style.backgroundImage]->load(ofToDataPath(style.backgroundImage));
+                    SetImage(style.backgroundImage, style.backgroundImage);
                 } else if ( keyValue[0] == "overflow" ){
                     style.overflow = CleanString(keyValue[1], true);
                 } else if ( keyValue[0] == "background-size" ){
@@ -1585,17 +1598,13 @@ namespace SUI {
                 }
             }
             
-            
-            
-            EmitLoadedEvent();
-            
-            
             for (auto& elementId : renderElements ){
                 if ( elements[elementId] != NULL ){
                     elements[elementId]->Reset(false);
                     elements[elementId]->UpdateStyle(true);
                 }
             }
+            
         }
         
         void Draw(){
@@ -1624,6 +1633,7 @@ namespace SUI {
         void ReloadData(){
             MakeElements();
             ParseCustomParams(*this, GetBlocks(stylesheet->GetBlock("[canvas]")));
+            EmitLoadedEvent();
         }
         
         
@@ -1725,6 +1735,8 @@ namespace SUI {
     static void ShouldDestroyTween( Tween* t ){
         tweensToDestroy.push_back( t );
     }
+    
+    void Update();
     
     static void DestroyTween(const Tween* t){
         /*int index = 0;
