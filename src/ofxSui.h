@@ -1146,8 +1146,13 @@ namespace SUI {
             return *this;
         }
         
+        Element& SetBackgroundImage(string idPath){
+            inlineStyle.backgroundImage = idPath;
+            UpdateStyle();
+            return *this;
+        }
+        
         Element& SetBackgroundColor(string hexString){
-            //inlineStyle.SetBackgroundColor(hexString);
             Style::SetBackgroundColor(hexString);
             UpdateStyle();
             return *this;
@@ -1258,7 +1263,7 @@ namespace SUI {
             ofSetColor(255);
             if ( backgroundImage != "" ) {
                 
-                ofImage* img = SUI::images[backgroundImage];
+                ofImage* img = SUI::GetImage(backgroundImage);
                 
                 if ( !isnan(backgroundSizeX) && !isnan(backgroundSizeY) ){
                     img->drawSubsection(0,0, width, height, 0, 0, img->getWidth()*backgroundSizeX, img->getHeight()*backgroundSizeY);
