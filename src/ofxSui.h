@@ -47,10 +47,10 @@ namespace SUI {
         return str;
     };
     
-    static void SetImage(string id, string filepath){
+    static void SetImage(string filepath){
         //ofLog() << "SUI::SetImage(" << id << "," << filepath << ") ---- ";
-        if ( SUI::images.count(id) == 0 ) SUI::images[id] = new ofImage();
-        SUI::images[id]->load(ofToDataPath(filepath));
+        if ( SUI::images.count(filepath) == 0 ) SUI::images[filepath] = new ofImage();
+        SUI::images[filepath]->load(ofToDataPath(filepath));
     };
     
     static ofImage* GetImage(string id){
@@ -668,7 +668,7 @@ namespace SUI {
                 if ( isnan(backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
                 if ( backgroundImage == "" && style.backgroundImage != "" ) {
                     backgroundImage = style.backgroundImage;
-                    SetImage(backgroundImage, backgroundImage);
+                    SetImage(backgroundImage);
                 }
                 if ( overflow == "" ) overflow = style.overflow;
                 if ( isnan(anchorPoint) ) anchorPoint = style.anchorPoint;
@@ -687,7 +687,7 @@ namespace SUI {
                 if ( !isnan(style.backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
                 if ( style.backgroundImage != "" ) {
                     backgroundImage = style.backgroundImage;
-                    SetImage(backgroundImage, backgroundImage);
+                    SetImage(backgroundImage);
                 }
                 if ( style.overflow != "" ) overflow = style.overflow;
                 if ( !isnan(style.anchorPoint) ) anchorPoint = style.anchorPoint;
@@ -777,7 +777,7 @@ namespace SUI {
                     //ofLog() << keyValue[1];
                     //ofLog() << ofToString(keyValue[1]);
                     //ofLog() << SUI::images.count(keyValue[1]);
-                    SetImage(style.backgroundImage, style.backgroundImage);
+                    SetImage(style.backgroundImage);
                 } else if ( keyValue[0] == "overflow" ){
                     style.overflow = CleanString(keyValue[1], true);
                 } else if ( keyValue[0] == "background-size" ){
