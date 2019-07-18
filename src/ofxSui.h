@@ -23,7 +23,7 @@ namespace SUI {
     
     void LiveReload(bool reload = true);
     extern map<string, ofImage*> images;
-    
+    extern map<string, ofSoundPlayer*> sounds;
     
     //========================================================================================================
     //========================================================================================================
@@ -52,6 +52,24 @@ namespace SUI {
         if ( SUI::images.count(filepath) == 0 ) SUI::images[filepath] = new ofImage();
         SUI::images[filepath]->load(ofToDataPath(filepath));
     };
+    
+    static void SetSound(string filepath){
+        if ( SUI::sounds.count(filepath) == 0 ) SUI::sounds[filepath] = new ofSoundPlayer();
+        SUI::sounds[filepath]->load(ofToDataPath(filepath));
+    };
+    
+    static ofSoundPlayer* GetSound(string id){
+        return SUI::sounds[id];
+    }
+    
+    static bool HasSound(string id){
+        if (SUI::sounds[id] == NULL ) return false;
+        return true;
+    }
+    
+    static void PlaySound(string id){
+        if ( SUI::sounds[id] != NULL ) SUI::sounds[id]->play();
+    }
     
     static ofImage* GetImage(string id){
         return SUI::images[id];
@@ -1446,10 +1464,30 @@ namespace SUI {
         vector<string> managedRenderElements = vector<string>();
         vector<string> renderElements = vector<string>();
         StyleSheet* stylesheet = NULL;
+        map<string, string> sounds;
+        
         
         //CustomParams global;
         ofEvent<suiCanvasEventArgs> onTrigger;
         ofEvent<suiCanvasEventArgs> onLoaded;
+        
+        
+        void ParseSounds(map<string, vector<string>> blocks){
+            vector<string> lines = GetStyles( blocks["-sounds"] );
+            
+            for (auto& line : lines ){
+                vector<string> keyValue = vector<string>(2);
+                line = CleanString(line);
+                
+                int index = line.find_first_of(":");
+                keyValue[0] = line.substr(0,index);
+                keyValue[1] = line.substr(index+1);
+                
+                //ofLog() << "[sound:" << keyValue[0] + "] " << keyValue[1];
+                SUI::SetSound( keyValue[1] );
+                sounds[ keyValue[0] ] = keyValue[1];
+            }
+        }
         
         bool ElementExists(string id){
             bool found = false;
@@ -1637,7 +1675,9 @@ namespace SUI {
         
         void ReloadData(){
             MakeElements();
-            ParseCustomParams(*this, GetBlocks(stylesheet->GetBlock("[canvas]")));
+            map<string, vector<string>> canvasBlocks = GetBlocks(stylesheet->GetBlock("[canvas]"));
+            ParseCustomParams(*this, canvasBlocks );
+            ParseSounds( canvasBlocks );
             EmitLoadedEvent();
         }
         

@@ -3,6 +3,7 @@
 namespace SUI {
     Settings settings;
     map<string, ofImage*> images;
+    map<string, ofSoundPlayer*> sounds;
     vector<Tween*> tweens;
     vector<Tween*> tweensToDestroy;
     
