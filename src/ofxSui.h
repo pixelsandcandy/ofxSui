@@ -1483,7 +1483,7 @@ namespace SUI {
                 keyValue[0] = line.substr(0,index);
                 keyValue[1] = line.substr(index+1);
                 
-                //ofLog() << "[sound:" << keyValue[0] + "] " << keyValue[1];
+                ofLog() << "[sound:" << keyValue[0] + "] " << keyValue[1];
                 SUI::SetSound( keyValue[1] );
                 sounds[ keyValue[0] ] = keyValue[1];
             }
