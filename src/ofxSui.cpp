@@ -39,6 +39,8 @@ namespace SUI {
     void update(){
         //ofLog() << "# tweens: " << tweens.size();
         
+        //ofLog() << "update!!!";
+        
         float currTime = ofGetElapsedTimeMillis();
         
         int max = tweens.size();
@@ -63,7 +65,14 @@ namespace SUI {
     }
     
     void Canvas::update(){
-        
+        /*if (!ready){
+            ready = true;
+            if (shouldEmitLoadedEvent) {
+                shouldEmitLoadedEvent = false;
+                emitloadedEvent();
+                ofLog() << "YAYYY";
+            }
+        }*/
     };
     
     //

@@ -42,6 +42,20 @@ namespace SUI {
         return str;
     };
     
+    static bool isQuotes(string s){
+        bool quotes = false;
+        if ( s.find("\"") != string::npos ){
+            int c = std::count(s.begin(), s.end(), '"');
+            if ( c == 2 ) {
+                quotes = true;
+            }
+        }
+        
+        //if ( quotes ) ofLog() << "[quote] " << s;
+        
+        return quotes;
+    };
+    
     static string cleanSemiColon(string str){
         str = ofJoinString(ofSplitString(str, ";"), "" );
         return str;
@@ -131,14 +145,14 @@ namespace SUI {
 #endif
     };
     
-    static string cleanString(string s, bool removeSpaces = false, bool removeTrailingComma = true){
+    static string cleanString(string s, bool removeSpaces = false, bool removeTrailingComma = true, bool removeQuotes = true){
         if ( removeSpaces ) s = ofJoinString(ofSplitString(s," "), "");
         if ( removeTrailingComma ) {
             if ( s.find_last_of(";") == s.length()-1 ) s = s.substr(0,s.length()-1);
         }
         s = ofJoinString(ofSplitString(s,"\n"), "");
         s = ofJoinString(ofSplitString(s,"\t"), "");
-        s = ofJoinString(ofSplitString(s,"\""), "");
+        if ( removeQuotes ) s = ofJoinString(ofSplitString(s,"\""), "");
         return s;
     }
     
@@ -147,11 +161,13 @@ namespace SUI {
         ~CustomParams(){};
         CustomParams(){};
         
-        map<string,bool> bools;
-        map<string,string> strings;
-        map<string,int> ints;
-        map<string,float> floats;
+        map<string,bool> bools = map<string,bool>();
+        map<string,string> strings = map<string,string>();
+        map<string,int> ints = map<string,int>();
+        map<string,float> floats = map<string,float>();
     };
+    
+    
     
     static vector<string> getStyles(vector<string> lines){
         vector <string> styleLines;
@@ -165,9 +181,16 @@ namespace SUI {
         
         for (auto& line : lines){
             
-            string l = ofJoinString(ofSplitString(line," "), "");
-            l = ofJoinString(ofSplitString(l,"\n"), "");
-            l = ofJoinString(ofSplitString(l,"\t"), "");
+            //string l = ofJoinString(ofSplitString(line," "), "");
+            string l = line;
+            
+            if ( isQuotes(l) ) {
+                vector<string> split = ofSplitString(l, "\"");
+                l = cleanString(split[0], true, true, false) + "\"" + split[1] + "\"";
+                //ofLog() << "[->] " << l;
+            } else {
+                l = cleanString(l, true, true, false);
+            }
             
             // skip comments
             if ( line.find("//") == 0 ) continue;
@@ -238,9 +261,15 @@ namespace SUI {
         
         for (auto& line : lines){
             
-            string l = ofJoinString(ofSplitString(line," "), "");
-            l = ofJoinString(ofSplitString(l,"\n"), "");
-            l = ofJoinString(ofSplitString(l,"\t"), "");
+            string l = line;
+            
+            if ( isQuotes(l) ) {
+                vector<string> split = ofSplitString(l, "\"");
+                l = cleanString(split[0], true, true, false) + "\"" + split[1] + "\"";
+                //ofLog() << "[->] " << l;
+            } else {
+                l = cleanString(l, true, true, false);
+            }
             
             //string l = line;
             
@@ -337,9 +366,15 @@ namespace SUI {
             if ( name == "[[-keys-]]" ) continue;
             for (auto& line : it->second){
                 
-                string l = ofJoinString(ofSplitString(line," "), "");
-                l = ofJoinString(ofSplitString(l,"\n"), "");
-                l = ofJoinString(ofSplitString(l,"\t"), "");
+                string l = line;
+                
+                if ( isQuotes(l) ) {
+                    vector<string> split = ofSplitString(l, "\"");
+                    l = cleanString(split[0], true, true, false) + "\"" + split[1] + "\"";
+                    //ofLog() << "[->] " << l;
+                } else {
+                    l = cleanString(l, true, true, false);
+                }
                 
                 //string l = line;
                 
@@ -1455,7 +1490,9 @@ namespace SUI {
             stylesheet = 0;
             stylesheet = NULL;
         };
-        Canvas(){};
+        Canvas(){
+            //ofAddListener(ofEvents().update, this, &Canvas::update);
+        };
         
         //
         
@@ -1534,7 +1571,14 @@ namespace SUI {
             ofNotifyEvent(onTrigger, args, this);
         };
         
+        //bool ready = false;
+        //bool shouldEmitLoadedEvent = false;
+        
         void emitloadedEvent(){
+            /*if (!ready) {
+                shouldEmitLoadedEvent = true;
+                return;
+            }*/
             suiCanvasEventArgs args(CANVAS_EVENT_LOADED);
             ofNotifyEvent(onLoaded, args, this);
         };
@@ -1593,6 +1637,8 @@ namespace SUI {
         void render(){};
         
         void load(string filepath){
+            
+            
             stylesheet = new StyleSheet();
             stylesheet->load(filepath);
             
