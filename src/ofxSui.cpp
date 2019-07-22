@@ -7,9 +7,9 @@ namespace SUI {
     vector<Tween*> tweens;
     vector<Tween*> tweensToDestroy;
     
-    void LiveReload(bool reload){
+    void liveReload(bool reload){
         //ofLog() << "============================";
-        ofLog() << "LiveReload -----------------";
+        ofLog() << "liveReload -----------------";
         //ofLog() << "============================";
         settings.liveReload = reload;
     };
@@ -19,14 +19,14 @@ namespace SUI {
         suiStyleSelectorArgs(StyleSelector &styleSelector):styleSelector(styleSelector){}
     };
     
-    void StyleSelector::Bind(StyleSheet& stylesheet){
+    void StyleSelector::bind(StyleSheet& stylesheet){
         this->stylesheet = &stylesheet;
-        ofAddListener(this->stylesheet->onReload, this, &StyleSelector::ReloadStyle);
+        ofAddListener(this->stylesheet->onReload, this, &StyleSelector::reloadStyle);
     }
     
-    void StyleSelector::ReloadStyle(suiStyleSheetArgs& args){
+    void StyleSelector::reloadStyle(suiStyleSheetArgs& args){
         suiStyleSelectorArgs sArgs(*this);
-        ofNotifyEvent(onUpdate, sArgs, this);
+        ofNotifyEvent(onupdate, sArgs, this);
     }
     
     struct suiTweenArgs {
@@ -36,7 +36,7 @@ namespace SUI {
         suiTweenArgs(Tween &tween, Element &element, Event eventType):tween(tween),element(element),eventType(eventType){}
     };
     
-    void Update(){
+    void update(){
         //ofLog() << "# tweens: " << tweens.size();
         
         float currTime = ofGetElapsedTimeMillis();
@@ -44,43 +44,43 @@ namespace SUI {
         int max = tweens.size();
         int i = 0;
         for (vector<Tween*>::iterator it = tweens.begin(); it != tweens.end(); it++){
-            //if ( i >= 0 && i < max && (*it) != NULL && (*it) != nullptr && (*it)->el != NULL ) (*it)->Update( currTime );
+            //if ( i >= 0 && i < max && (*it) != NULL && (*it) != nullptr && (*it)->el != NULL ) (*it)->update( currTime );
             //else return;
             if ( i >= 0 && i < max ) {
-                if ( (*it) != NULL && (*it)->active && !isnan((*it)->duration) && (*it)->duration != 0.0 ) (*it)->Update( currTime );
+                if ( (*it) != NULL && (*it)->active && !isnan((*it)->duration) && (*it)->duration != 0.0 ) (*it)->update( currTime );
             } else {
                 return;
             }
-            //(*it)->Update( currTime );
+            //(*it)->update( currTime );
             i++;
         }
         
         for (vector<Tween*>::iterator it = tweensToDestroy.begin(); it !=  tweensToDestroy.end(); it++){
-            DestroyTween( (*it) );
+            destroyTween( (*it) );
         }
         
         tweensToDestroy.clear();
     }
     
-    void Canvas::Update(){
+    void Canvas::update(){
         
     };
     
     //
     
-    void StyleSheet::UpdateHandler(){
+    void StyleSheet::updateHandler(){
         //std::filesystem::last_write_time(ofToDataPath(it.second));
-        //ofLog() << ofGetElapsedTimef() << " <?" << nextUpdateTime;
-        if ( ofGetElapsedTimef() > nextUpdateTime ){
+        //ofLog() << ofgetElapsedTimef() << " <?" << nextupdateTime;
+        if ( ofGetElapsedTimef() > nextupdateTime ){
             //ofLog() << "check file... " << ofRandomf();
-            nextUpdateTime = ofGetElapsedTimef() + updateInterval;
+            nextupdateTime = ofGetElapsedTimef() + updateInterval;
             time_t t = std::filesystem::last_write_time(ofToDataPath(this->filepath));
             //ofLog() << t << "  >?  " << fileTime;
             if ( t > fileTime ){
                 //ofLog() << "RELOAD FILE--------" << ofRandomf();
                 
                 fileTime = t;
-                Load(filepath);
+                load(filepath);
                 suiStyleSheetArgs args(*this);
                 
                 ofNotifyEvent(onReload, args, this);
@@ -89,30 +89,30 @@ namespace SUI {
         
     }
     
-    void Element::StopTween(){
+    void Element::stopTween(){
         if ( tween != NULL ) {
-            tween->Stop();
+            tween->stop();
             tween = NULL;
         }
     }
     
-    void Element::StoreTween(Tween* tween){
+    void Element::storeTween(Tween* tween){
         this->tween = tween;
     }
     
     template <typename ArgumentsType, class ListenerClass>
-    Tween* Element::Animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
-        return SUI::Animate( this, timeSeconds, params, listener, listenerMethod );
+    Tween* Element::animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
+        return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
         
     }
     
-    Tween* Element::Animate( float timeSeconds, string params ){
-        return SUI::Animate( this, timeSeconds, params );
+    Tween* Element::animate( float timeSeconds, string params ){
+        return SUI::animate( this, timeSeconds, params );
     }
     
-    Tween* Animate( Element* el, float timeSeconds, string params ){
+    Tween* animate( Element* el, float timeSeconds, string params ){
         Tween *t = new Tween();
-        t->Start( el, timeSeconds, params );
+        t->start( el, timeSeconds, params );
         
         tweens.push_back( t );
         return t;
@@ -122,18 +122,18 @@ namespace SUI {
     
     //
     
-    void Tween::Start( Element* el, float timeSeconds, string params, bool attachToElement ){
+    void Tween::start( Element* el, float timeSeconds, string params, bool attachToElement ){
         firstStep = true;
         active = true;
         this->el = el;
         if ( attachToElement ) {
             attachedToElement = true;
-            el->StopTween();
-            el->StoreTween(this);
+            el->stopTween();
+            el->storeTween(this);
         }
         duration = timeSeconds*1000;
         
-        //el->UpdateStyle();
+        //el->updateStyle();
         
         string s(params);
         ofStringReplace(s, "{", " ");
@@ -175,12 +175,12 @@ namespace SUI {
                         else if ( propVal[0] == "height" ) propVal[1] = ofToString(el->height * ofToFloat( ofSplitString( propVal[1], "*=" )[1] ));
                         else if ( propVal[0] == "scale" ) propVal[1] = ofToString(el->scale * ofToFloat( ofSplitString( propVal[1], "*=" )[1] ));
                         else if ( propVal[0] == "rotation" ) propVal[1] = ofToString(el->rotation * ofToFloat( ofSplitString( propVal[1], "*=" )[1] ));
-                    } else if ( propVal[1].find("%") != -1 && el->GetParent() != NULL ){
-                        if ( propVal[0] == "width" ) propVal[1] = ofToString(el->GetParent()->width * ofToFloat( ofSplitString( propVal[1], "*=" )[0] )*.01 );
-                        else if ( propVal[0] == "height" ) propVal[1] = ofToString(el->GetParent()->height * ofToFloat( ofSplitString( propVal[1], "*=" )[0] )*.01 );
+                    } else if ( propVal[1].find("%") != -1 && el->getParent() != NULL ){
+                        if ( propVal[0] == "width" ) propVal[1] = ofToString(el->getParent()->width * ofToFloat( ofSplitString( propVal[1], "*=" )[0] )*.01 );
+                        else if ( propVal[0] == "height" ) propVal[1] = ofToString(el->getParent()->height * ofToFloat( ofSplitString( propVal[1], "*=" )[0] )*.01 );
                     }
                     //ofLog() << propVal[0] << "=" << propVal[1];
-                    StoreValue( propVal[0], propVal[1] );
+                    storeValue( propVal[0], propVal[1] );
                 } else if ( propVal[0] == "delay" ){
                     delay = ofToFloat( propVal[1] );
                 } else if ( propVal[0] == "easing" || propVal[0] == "ease" ){
@@ -225,7 +225,7 @@ namespace SUI {
         endTime = startTime + duration;
     }
     
-    void Tween::StoreStartValues(){
+    void Tween::storeStartValues(){
         for ( vector<string>::iterator it = valueNames.begin(); it != valueNames.end(); it++ ){
             if ( (*it) == "x" ){
                 startValues[ (*it) ] = el->x;
@@ -233,17 +233,17 @@ namespace SUI {
                 startValues[ (*it) ] = el->y;
                 //ofLog() << "sy:" << startValues[ (*it) ];
             } else if ( (*it) == "width" ){
-                //ofLog() << "width:" << el->GetWidth();
+                //ofLog() << "width:" << el->getWidth();
                 startValues[ (*it) ] = el->width;
             } else if ( (*it) == "height" ){
-                //ofLog() << "height:" << el->GetHeight();
+                //ofLog() << "height:" << el->getHeight();
                 startValues[ (*it) ] = el->height;
             } else if ( (*it) == "rotation" ){
                 startValues[ (*it) ] = el->rotation;
             } else if ( (*it) == "opacity" ){
                 startValues[ (*it) ] = el->opacity;
             } else if ( (*it) == "scale" ){
-                //ofLog() << "scale:" << el->GetScale();
+                //ofLog() << "scale:" << el->getScale();
                 startValues[ (*it) ] = el->scale;
             }
         }
@@ -251,22 +251,22 @@ namespace SUI {
         //ofLog() << "startValues:  x=" << startValues["x"] << "  y:" << startValues["y"];
     }
     
-    void Tween::StoreValue( string param, string val ){
+    void Tween::storeValue( string param, string val ){
         endValues[ param ] = ofToFloat( val );
         valueNames.push_back( param );
     }
     
-    void Tween::StoreValue( string param, float val ){
+    void Tween::storeValue( string param, float val ){
         endValues[ param ] = val;
         valueNames.push_back( param );
     }
     
-    void Tween::Stop(){
+    void Tween::stop(){
         active = false;
     }
     
     
-    void Tween::Update(float currTime){
+    void Tween::update(float currTime){
         if ( !active || el == NULL ) return;
         
         if ( currTime >= startTime && currTime < endTime ){
@@ -274,17 +274,17 @@ namespace SUI {
             
             if ( firstStep ){
                 firstStep = false;
-                el->Update();
-                StoreStartValues();
+                el->update();
+                storeStartValues();
                 
                 suiTweenArgs args(*this, (*el), SUI_EVENT_ANIMATE_START);
-                ofNotifyEvent( onStart, args, this );
+                ofNotifyEvent( onstart, args, this );
                 
                 //ofLog() << cmd;
             }
             
             perc = (currTime - startTime) / duration;
-            UpdateValues();
+            updateValues();
             
             suiTweenArgs args(*this, (*el), SUI_EVENT_ANIMATE_STEP);
             ofNotifyEvent( onStep, args, this );
@@ -292,7 +292,7 @@ namespace SUI {
             active = false;
             
             perc = 1;
-            UpdateValues();
+            updateValues();
             
             suiTweenArgs args(*this, (*el), SUI_EVENT_ANIMATE_STEP);
             ofNotifyEvent( onStep, args, this );
@@ -301,15 +301,15 @@ namespace SUI {
             suiTweenArgs args2(*this, (*el), SUI_EVENT_ANIMATE_COMPLETE);
             ofNotifyEvent( onComplete, args2, this );
             
-            if ( attachedToElement ) ShouldDestroyTween(this);
+            if ( attachedToElement ) shoulddestroyTween(this);
         }
     }
     
-    void Tween::UpdateValues(){
+    void Tween::updateValues(){
         if ( valueNames.size() == 0 ) return;
         for ( vector<string>::iterator it = valueNames.begin(); it != valueNames.end(); it++ ){
             if ( (*it) == "x" ){
-                //x = el->GetPosition().x;
+                //x = el->getPosition().x;
                 
                 x = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
                 //ofLog() << "(" << x << ") " << startValues[(*it)] << "->" << endValues[(*it)];
@@ -328,7 +328,7 @@ namespace SUI {
                 el->rotation = rotation;
             } else if ( (*it) == "opacity" ){
                 opacity = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
-                //if ( el->GetName() == "#ShaveOver" ) ofLog() << opacity;
+                //if ( el->getName() == "#ShaveOver" ) ofLog() << opacity;
                 
                 el->opacity = opacity;
                 
@@ -337,12 +337,12 @@ namespace SUI {
                 el->scale = scale;
             }
         }
-        el->Update();
+        el->update();
     }
     
     
-    void Action::Run(Element& el){
-        ofLog() << "Action::Run()";
+    void Action::run(Element& el){
+        ofLog() << "Action::run()";
         for (auto it=subactions.begin(); it!=subactions.end(); ++it){
             ofLog() << "[" << it->first << "]";
             if (it->first == "animate"){
@@ -353,24 +353,24 @@ namespace SUI {
                 params = ofJoinString( ofSplitString(params, ";"), "" );
                 
                 ofLog() << "animate > " << duration << " > " << params;
-                el.Animate(duration, params);
+                el.animate(duration, params);
             } else if (it->first == "commands"){
-                vector<string> commands = ofSplitString(CleanArrayBrackets(it->second), ",");
+                vector<string> commands = ofSplitString(cleanArrayBrackets(it->second), ",");
                 for (auto& command : commands){
                     ofLog() << "command > " << command;
                     if ( command.find("actions.") != string::npos ){
                         if ( command.find("(") == string::npos && command.find(")") == string::npos ){
-                            el.styleSelector->RunAction(command.substr(command.find(".")+1), el);
+                            el.styleSelector->runAction(command.substr(command.find(".")+1), el);
                         } else if (ofToString(command[0]) != "(" && command.find("(") != string::npos && command.find(")") != string::npos) {
                             string selectorId = command.substr( command.find("(")+1 );
                             selectorId = ofJoinString( ofSplitString(selectorId, ")"), "" );
                             
                             string actionId = ofSplitString(ofSplitString(command, ".")[1], "(")[0];
                             
-                            el.styleSelector->RunAction(actionId, *el.canvas->GetElementById(selectorId));
+                            el.styleSelector->runAction(actionId, *el.canvas->getElementById(selectorId));
                         }
                     } else if ( command.find("trigger.") != string::npos ){
-                        el.canvas->EmitTriggerEvent( command.substr( command.find(".")+1 ) );
+                        el.canvas->emitTriggerEvent( command.substr( command.find(".")+1 ) );
                     }
                 }
             }
