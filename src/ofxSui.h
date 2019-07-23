@@ -67,9 +67,10 @@ namespace SUI {
         SUI::images[filepath]->load(ofToDataPath(filepath));
     };
     
-    static void setSound(string filepath){
+    static void setSound(string filepath, float volume = 1.0){
         if ( SUI::sounds.count(filepath) == 0 ) SUI::sounds[filepath] = new ofSoundPlayer();
         SUI::sounds[filepath]->load(ofToDataPath(filepath));
+        SUI::sounds[filepath]->setVolume(volume);
     };
     
     static ofSoundPlayer* getSound(string id){
@@ -187,6 +188,7 @@ namespace SUI {
             if ( isQuotes(l) ) {
                 vector<string> split = ofSplitString(l, "\"");
                 l = cleanString(split[0], true, true, false) + "\"" + split[1] + "\"";
+                if ( split.size() == 3 ) l = l + split[2];
                 //ofLog() << "[->] " << l;
             } else {
                 l = cleanString(l, true, true, false);
@@ -266,6 +268,7 @@ namespace SUI {
             if ( isQuotes(l) ) {
                 vector<string> split = ofSplitString(l, "\"");
                 l = cleanString(split[0], true, true, false) + "\"" + split[1] + "\"";
+                if ( split.size() == 3 ) l = l + split[2];
                 //ofLog() << "[->] " << l;
             } else {
                 l = cleanString(l, true, true, false);
@@ -371,6 +374,7 @@ namespace SUI {
                 if ( isQuotes(l) ) {
                     vector<string> split = ofSplitString(l, "\"");
                     l = cleanString(split[0], true, true, false) + "\"" + split[1] + "\"";
+                    if ( split.size() == 3 ) l = l + split[2];
                     //ofLog() << "[->] " << l;
                 } else {
                     l = cleanString(l, true, true, false);
@@ -1507,6 +1511,7 @@ namespace SUI {
         //CustomParams global;
         ofEvent<suiCanvasEventArgs> onTrigger;
         ofEvent<suiCanvasEventArgs> onLoaded;
+        ofEvent<string> onDrawElement;
         
         
         void parseSounds(map<string, vector<string>> blocks){
@@ -1520,9 +1525,22 @@ namespace SUI {
                 keyValue[0] = line.substr(0,index);
                 keyValue[1] = line.substr(index+1);
                 
-                ofLog() << "[sound:" << keyValue[0] + "] " << keyValue[1];
-                SUI::setSound( keyValue[1] );
-                sounds[ keyValue[0] ] = keyValue[1];
+                
+                
+                if ( keyValue[1].find(",") != string::npos ){
+                    vector<string> fileVolume = ofSplitString(keyValue[1], ",");
+                    //ofLog() << "[sound:" << keyValue[0] + "] " << fileVolume[0] << " (volume:" << fileVolume[1] << ")";
+                    
+                    SUI::setSound( fileVolume[0], ofToFloat(fileVolume[1]) );
+                    sounds[ keyValue[0] ] = fileVolume[0];
+                } else {
+                    //ofLog() << "[sound:" << keyValue[0] + "] " << keyValue[1];
+                    
+                    SUI::setSound( keyValue[1] );
+                    sounds[ keyValue[0] ] = keyValue[1];
+                }
+                
+                
             }
         }
         
@@ -1695,6 +1713,10 @@ namespace SUI {
             }
             
         }
+        //template <typename ArgumentsType, class ListenerClass>
+        //static Tween* animate( Element* el, float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
+        //template <typename ArgumentsType, class ListenerClass>
+        //map<string, void (ListenerClass::*listenerMethod)(ArgumentsType&)> drawAfter;
         
         void draw(){
             //for (auto element : boost::adaptors::reverse(elements) ){
@@ -1704,12 +1726,19 @@ namespace SUI {
             
             for (auto& elementId : managedrenderElements ){
                 //ofLog() << elementId;
-                if ( elements[elementId] != NULL ) elements[elementId]->draw();
+                if ( elements[elementId] != NULL ) {
+                    elements[elementId]->draw();
+                    ofNotifyEvent(onDrawElement, elementId, this);
+                }
             }
             
             for (auto& elementId : renderElements ){
                 //ofLog() << elementId;
-                if ( elements[elementId] != NULL ) elements[elementId]->draw();
+                if ( elements[elementId] != NULL ) {
+                    elements[elementId]->draw();
+                    ofNotifyEvent(onDrawElement, elementId, this);
+                    //if ( drawAfter[elementId] != NULL ) draw
+                }
             }
         };
         
