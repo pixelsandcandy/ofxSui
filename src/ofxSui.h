@@ -1717,7 +1717,11 @@ namespace SUI {
             reloadData();
         }
         
+        bool isReady(){
+            return ready;
+        }
         
+        bool ready = false;
         
         void reloadData(){
             makeElements();
@@ -1725,6 +1729,7 @@ namespace SUI {
             parseCustomParams(*this, canvasBlocks );
             parseSounds( canvasBlocks );
             emitloadedEvent();
+            ready = true;
         }
         
         
