@@ -733,7 +733,7 @@ namespace SUI {
                     setImage(backgroundImage);
                 }
                 if ( overflow == "" ) overflow = style.overflow;
-                if ( isnan(static_cast<float>(anchorPoint) ) anchorPoint = style.anchorPoint;
+                if ( isnan(static_cast<float>(anchorPoint)) ) anchorPoint = style.anchorPoint;
                 if ( !hasBackgroundColor && style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
@@ -1620,17 +1620,17 @@ namespace SUI {
             return elements.back();
         }*/
         
-        Element& addElement(StyleSheet& stylesheet, string selector, string id, bool reloadManaged = false){
+        Element* addElement(StyleSheet& stylesheet, string selector, string id, bool reloadManaged = false){
             if ( !stylesheet.hasSelector(selector) ) return;
             Element* el = new Element(stylesheet.getSelector(selector), id, *this );
             //elements.push_back(el);
             elements[id] = el;
             if ( !reloadManaged ) renderElements.push_back(id);
-            return *elements[id];
+            return elements[id];
             //return *elements.back();
         }
         
-        Element& addElement(string selector, string id, bool reloadManaged = false){
+        Element* addElement(string selector, string id, bool reloadManaged = false){
             //ofLog() << "[Add Element]  selector:" << selector << "  id:" << id;
             if ( !stylesheet->hasSelector(selector) ) return;
             Element* el = new Element(stylesheet->getSelector(selector), id, *this );
@@ -1638,7 +1638,7 @@ namespace SUI {
             //return *elements.back();
             elements[id] = el;
             if ( !reloadManaged ) renderElements.push_back(id);
-            return *elements[id];
+            return elements[id];
         }
         
         void pushElement(Element* element, string selector, string id){
@@ -1699,11 +1699,11 @@ namespace SUI {
                 } else {
                     if ( !stylesheet->hasSelector(nameSelector[1]) ) continue;
                     
-                    Element& el = addElement(nameSelector[1], nameSelector[0], true);
+                    Element* el = addElement(nameSelector[1], nameSelector[0], true);
                     //ofLog() << nameSelector[1] << "============";
-                    parseStyle(el.inlineStyle, styles);
+                    parseStyle(el->inlineStyle, styles);
                     //ofLog() << el.inlineStyle.y;
-                    el.updateStyle();
+                    el->updateStyle();
                     //el.copyInlineStyles();
                     //ofLog() << "---- ";
                     //ofLog() << " ";
