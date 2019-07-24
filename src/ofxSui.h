@@ -1621,7 +1621,7 @@ namespace SUI {
         }*/
         
         Element* addElement(StyleSheet& stylesheet, string selector, string id, bool reloadManaged = false){
-            if ( !stylesheet.hasSelector(selector) ) return;
+            if ( !stylesheet.hasSelector(selector) ) return NULL;
             Element* el = new Element(stylesheet.getSelector(selector), id, *this );
             //elements.push_back(el);
             elements[id] = el;
@@ -1632,7 +1632,7 @@ namespace SUI {
         
         Element* addElement(string selector, string id, bool reloadManaged = false){
             //ofLog() << "[Add Element]  selector:" << selector << "  id:" << id;
-            if ( !stylesheet->hasSelector(selector) ) return;
+            if ( !stylesheet->hasSelector(selector) ) return NULL;
             Element* el = new Element(stylesheet->getSelector(selector), id, *this );
             //elements.push_back(el);
             //return *elements.back();
