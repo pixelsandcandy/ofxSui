@@ -57,7 +57,7 @@ namespace SUI {
             //if ( i >= 0 && i < max && (*it) != NULL && (*it) != nullptr && (*it)->el != NULL ) (*it)->update( currTime );
             //else return;
             if ( i >= 0 && i < max ) {
-                if ( (*it) != NULL && (*it)->active && !isnan((*it)->duration) && (*it)->duration != 0.0 ) (*it)->update( currTime );
+                if ( (*it) != NULL && (*it)->active && !isnan(static_cast<float>((*it)->duration)) && (*it)->duration != 0.0 ) (*it)->update( currTime );
             } else {
                 return;
             }

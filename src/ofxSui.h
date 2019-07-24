@@ -720,39 +720,39 @@ namespace SUI {
         
         void mergeStyles(Style& style, bool force = false ){
             if ( !force ) {
-                if ( isnan(x) ) x = style.x;
-                if ( isnan(y) ) y = style.y;
-                if ( isnan(rotation) ) rotation = style.rotation;
-                if ( isnan(opacity) ) opacity = style.opacity;
-                if ( isnan(width) ) width = style.width;
-                if ( isnan(height) ) height = style.height;
-                if ( isnan(backgroundSizeX) ) backgroundSizeX = style.backgroundSizeX;
-                if ( isnan(backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
+                if ( isnan(static_cast<float>(x)) ) x = style.x;
+                if ( isnan(static_cast<float>(y)) ) y = style.y;
+                if ( isnan(static_cast<float>(rotation)) ) rotation = style.rotation;
+                if ( isnan(static_cast<float>(opacity)) ) opacity = style.opacity;
+                if ( isnan(static_cast<float>(width)) ) width = style.width;
+                if ( isnan(static_cast<float>(height)) ) height = style.height;
+                if ( isnan(static_cast<float>(backgroundSizeX)) ) backgroundSizeX = style.backgroundSizeX;
+                if ( isnan(static_cast<float>(backgroundSizeY)) ) backgroundSizeY = style.backgroundSizeY;
                 if ( backgroundImage == "" && style.backgroundImage != "" ) {
                     backgroundImage = style.backgroundImage;
                     setImage(backgroundImage);
                 }
                 if ( overflow == "" ) overflow = style.overflow;
-                if ( isnan(anchorPoint) ) anchorPoint = style.anchorPoint;
+                if ( isnan(static_cast<float>(anchorPoint) ) anchorPoint = style.anchorPoint;
                 if ( !hasBackgroundColor && style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
                 }
             } else {
-                if ( !isnan(style.x) ) x = style.x;
-                if ( !isnan(style.y) ) y = style.y;
-                if ( !isnan(style.rotation) ) rotation = style.rotation;
-                if ( !isnan(style.opacity) ) opacity = style.opacity;
-                if ( !isnan(style.width) ) width = style.width;
-                if ( !isnan(style.height) ) height = style.height;
-                if ( !isnan(style.backgroundSizeX) ) backgroundSizeX = style.backgroundSizeX;
-                if ( !isnan(style.backgroundSizeY) ) backgroundSizeY = style.backgroundSizeY;
+                if ( !isnan(static_cast<float>(style.x)) ) x = style.x;
+                if ( !isnan(static_cast<float>(style.y)) ) y = style.y;
+                if ( !isnan(static_cast<float>(style.rotation)) ) rotation = style.rotation;
+                if ( !isnan(static_cast<float>(style.opacity)) ) opacity = style.opacity;
+                if ( !isnan(static_cast<float>(style.width)) ) width = style.width;
+                if ( !isnan(static_cast<float>(style.height)) ) height = style.height;
+                if ( !isnan(static_cast<float>(style.backgroundSizeX)) ) backgroundSizeX = style.backgroundSizeX;
+                if ( !isnan(static_cast<float>(style.backgroundSizeY)) ) backgroundSizeY = style.backgroundSizeY;
                 if ( style.backgroundImage != "" ) {
                     backgroundImage = style.backgroundImage;
                     setImage(backgroundImage);
                 }
                 if ( style.overflow != "" ) overflow = style.overflow;
-                if ( !isnan(style.anchorPoint) ) anchorPoint = style.anchorPoint;
+                if ( !isnan(static_cast<float>(style.anchorPoint)) ) anchorPoint = style.anchorPoint;
                 if ( style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
@@ -948,26 +948,26 @@ namespace SUI {
             if ( state > 0 ) {
                 Style& stateStyle = stateStyles[state];
                 
-                if ( !isnan(stateStyle.width) ) style.width = stateStyle.width;
-                if ( !isnan(stateStyle.height) ) style.height = stateStyle.height;
-                if ( !isnan(stateStyle.opacity) ) style.opacity = stateStyle.opacity;
-                if ( !isnan(stateStyle.rotation) ) style.rotation = stateStyle.rotation;
-                if ( !isnan(stateStyle.backgroundSizeX) ) style.backgroundSizeX = stateStyle.backgroundSizeX;
-                if ( !isnan(stateStyle.backgroundSizeY) ) style.backgroundSizeY = stateStyle.backgroundSizeY;
+                if ( !isnan(static_cast<float>(stateStyle.width)) ) style.width = stateStyle.width;
+                if ( !isnan(static_cast<float>(stateStyle.height)) ) style.height = stateStyle.height;
+                if ( !isnan(static_cast<float>(stateStyle.opacity)) ) style.opacity = stateStyle.opacity;
+                if ( !isnan(static_cast<float>(stateStyle.rotation)) ) style.rotation = stateStyle.rotation;
+                if ( !isnan(static_cast<float>(stateStyle.backgroundSizeX)) ) style.backgroundSizeX = stateStyle.backgroundSizeX;
+                if ( !isnan(static_cast<float>(stateStyle.backgroundSizeY)) ) style.backgroundSizeY = stateStyle.backgroundSizeY;
                 if ( stateStyle.backgroundImage != "" ) style.backgroundImage = stateStyle.backgroundImage;
                 if ( stateStyle.overflow != "" ) style.overflow = stateStyle.overflow;
-                if ( !isnan(stateStyle.anchorPoint) ) style.anchorPoint = stateStyle.anchorPoint;
+                if ( !isnan(static_cast<float>(stateStyle.anchorPoint)) ) style.anchorPoint = stateStyle.anchorPoint;
                 
             }
             
             
-            /*if ( !isnan(inlineStyle.width) ) style.width = inlineStyle.width;
-            if ( !isnan(inlineStyle.height) ) style.height = inlineStyle.height;
-            if ( !isnan(inlineStyle.backgroundSizeX) ) style.backgroundSizeX = inlineStyle.backgroundSizeX;
-            if ( !isnan(inlineStyle.backgroundSizeY) ) style.backgroundSizeY = inlineStyle.backgroundSizeY;
+            /*if ( !isnan(static_cast<float>(inlineStyle.width) ) style.width = inlineStyle.width;
+            if ( !isnan(static_cast<float>(inlineStyle.height) ) style.height = inlineStyle.height;
+            if ( !isnan(static_cast<float>(inlineStyle.backgroundSizeX) ) style.backgroundSizeX = inlineStyle.backgroundSizeX;
+            if ( !isnan(static_cast<float>(inlineStyle.backgroundSizeY) ) style.backgroundSizeY = inlineStyle.backgroundSizeY;
             if ( inlineStyle.backgroundImage != "" ) style.backgroundImage = inlineStyle.backgroundImage;
             if ( inlineStyle.overflow != "" ) style.overflow = inlineStyle.overflow;
-            if ( !isnan(inlineStyle.anchorPoint) ) style.anchorPoint = inlineStyle.anchorPoint;
+            if ( !isnan(static_cast<float>(inlineStyle.anchorPoint) ) style.anchorPoint = inlineStyle.anchorPoint;
             if ( inlineStyle.hasBackgroundColor ) style.backgroundColor = inlineStyle.backgroundColor;*/
             
             return style;
@@ -1153,19 +1153,19 @@ namespace SUI {
         }
         
         /*void copyInlineStyles(){
-            if ( !isnan(inlineStyle.x) ) x = inlineStyle.x;
-            if ( !isnan(inlineStyle.y) ) y = inlineStyle.y;
-            if ( !isnan(inlineStyle.width) ) width = inlineStyle.width;
-            if ( !isnan(inlineStyle.height) ) height = inlineStyle.height;
-            if ( !isnan(inlineStyle.backgroundSizeX) ) backgroundSizeX = inlineStyle.backgroundSizeX;
-            if ( !isnan(inlineStyle.backgroundSizeY) ) backgroundSizeY = inlineStyle.backgroundSizeY;
+            if ( !isnan(static_cast<float>(inlineStyle.x) ) x = inlineStyle.x;
+            if ( !isnan(static_cast<float>(inlineStyle.y) ) y = inlineStyle.y;
+            if ( !isnan(static_cast<float>(inlineStyle.width) ) width = inlineStyle.width;
+            if ( !isnan(static_cast<float>(inlineStyle.height) ) height = inlineStyle.height;
+            if ( !isnan(static_cast<float>(inlineStyle.backgroundSizeX) ) backgroundSizeX = inlineStyle.backgroundSizeX;
+            if ( !isnan(static_cast<float>(inlineStyle.backgroundSizeY) ) backgroundSizeY = inlineStyle.backgroundSizeY;
             if ( inlineStyle.backgroundImage != "" ) {
                 backgroundImage = inlineStyle.backgroundImage;
                 if ( SUI::images.count(backgroundImage) == 0 ) SUI::images[backgroundImage] = new ofImage();
                 SUI::images[backgroundImage]->load(ofToDataPath(backgroundImage));
             }
             if ( inlineStyle.overflow != "" ) overflow = inlineStyle.overflow;
-            if ( !isnan(inlineStyle.anchorPoint) ) anchorPoint = inlineStyle.anchorPoint;
+            if ( !isnan(static_cast<float>(inlineStyle.anchorPoint) ) anchorPoint = inlineStyle.anchorPoint;
             if ( inlineStyle.hasBackgroundColor ) backgroundColor = inlineStyle.backgroundColor;
         }*/
         
@@ -1327,7 +1327,7 @@ namespace SUI {
                 
                 ofImage* img = SUI::getImage(backgroundImage);
                 
-                if ( !isnan(backgroundSizeX) && !isnan(backgroundSizeY) ){
+                if ( !isnan(static_cast<float>(backgroundSizeX)) && !isnan(static_cast<float>(backgroundSizeY)) ){
                     img->drawSubsection(0,0, width, height, 0, 0, img->getWidth()*backgroundSizeX, img->getHeight()*backgroundSizeY);
                 } else {
                     int w = img->getWidth() < width ? img->getWidth() : width;
@@ -1354,7 +1354,7 @@ namespace SUI {
                 update();
             }
             
-            //ofLog() << isnan(position.x);
+            //ofLog() << isnan(static_cast<float>(position.x);
             //ofTranslate(position.x, position.y);
             
             
@@ -1457,8 +1457,8 @@ namespace SUI {
         void parseStyle(vector<string> block){
             //stateStyles[state] = style;
             
-            //if ( !isnan(style.x) ) position.x = style.x;
-            //if ( !isnan(style.y) ) position.y = style.y;
+            //if ( !isnan(static_cast<float>(style.x) ) position.x = style.x;
+            //if ( !isnan(static_cast<float>(style.y) ) position.y = style.y;
         }
         
         
