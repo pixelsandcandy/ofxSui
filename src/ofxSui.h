@@ -24,6 +24,7 @@ namespace SUI {
     void liveReload(bool reload = true);
     extern map<string, ofImage*> images;
     extern map<string, ofSoundPlayer*> sounds;
+    class Canvas;
     
     //========================================================================================================
     //========================================================================================================
@@ -77,6 +78,8 @@ namespace SUI {
         return SUI::sounds[id];
     }
     
+    ofSoundPlayer* getSound(Canvas& canvas, string id);
+    
     static bool hasSound(string id){
         if (SUI::sounds[id] == NULL ) return false;
         return true;
@@ -85,6 +88,8 @@ namespace SUI {
     static void playSound(string id){
         if ( SUI::sounds[id] != NULL ) SUI::sounds[id]->play();
     }
+    
+    void playSound(Canvas& canvas, string id);
     
     static ofImage* getImage(string id){
         return SUI::images[id];
@@ -683,7 +688,7 @@ namespace SUI {
             overflow = "auto";
             backgroundColor = ofColor::white;
             backgroundImage = "";
-            //hasBackgroundColor = true;
+            hasBackgroundColor = false;
             
         }
         

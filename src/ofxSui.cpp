@@ -29,6 +29,14 @@ namespace SUI {
         ofNotifyEvent(onupdate, sArgs, this);
     }
     
+    void playSound(Canvas& canvas, string id){
+        if ( canvas.sounds.count(id) != 0 ) playSound(canvas.sounds[id]);
+    }
+    
+    ofSoundPlayer* getSound(Canvas& canvas, string id){
+        return getSound(canvas.sounds[id]);
+    }
+    
     struct suiTweenArgs {
         Element& element;
         Tween& tween;
