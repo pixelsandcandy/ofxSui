@@ -835,7 +835,7 @@ namespace SUI {
                 } else if ( keyValue[0] == "y" ){
                     style.y = ofToInt(keyValue[1]);
                 } else if ( keyValue[0] == "background-image" || keyValue[0] == "backgroundimage" ){
-                    style.backgroundImage = cleanString(keyValue[1], true);
+                    style.backgroundImage = cleanString(keyValue[1], false);
                     //ofLog() << keyValue[1];
                     //ofLog() << ofToString(keyValue[1]);
                     //ofLog() << SUI::images.count(keyValue[1]);
