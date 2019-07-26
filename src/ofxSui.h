@@ -655,7 +655,7 @@ namespace SUI {
             opacity = nanf("");
             backgroundSizeX = nanf("");
             backgroundSizeY = nanf("");
-            anchorPoint = ANCHOR_LEFT_TOP;
+            anchorPoint = nan(0);
             overflow = "auto";
             backgroundColor = ofColor::white;
             backgroundImage = "";
@@ -684,7 +684,7 @@ namespace SUI {
             y = 0;
             opacity = 1.0;
             rotation = 0.0;
-            anchorPoint = ANCHOR_LEFT_TOP;
+            anchorPoint = nan(0);
             overflow = "auto";
             backgroundColor = ofColor::white;
             backgroundImage = "";
@@ -733,7 +733,9 @@ namespace SUI {
                     setImage(backgroundImage);
                 }
                 if ( overflow == "" ) overflow = style.overflow;
-                if ( isnan(static_cast<float>(anchorPoint)) ) anchorPoint = style.anchorPoint;
+                if ( isnan(static_cast<int>(anchorPoint)) ) {
+                    anchorPoint = style.anchorPoint;
+                }
                 if ( !hasBackgroundColor && style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
@@ -752,7 +754,9 @@ namespace SUI {
                     setImage(backgroundImage);
                 }
                 if ( style.overflow != "" ) overflow = style.overflow;
-                if ( !isnan(static_cast<float>(style.anchorPoint)) ) anchorPoint = style.anchorPoint;
+                if ( !isnan(static_cast<int>(style.anchorPoint)) ) {
+                    anchorPoint = style.anchorPoint;
+                }
                 if ( style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
@@ -810,6 +814,7 @@ namespace SUI {
                         style.anchorPoint = ANCHOR_LEFT_BOTTOM;
                     } else if ( val == "right-top" || val == "right_top" ){
                         style.anchorPoint = ANCHOR_RIGHT_TOP;
+                        ofLog() << "RIGHT_TOP";
                     } else if ( val == "right-center" || val == "right_center" ){
                         style.anchorPoint = ANCHOR_RIGHT_CENTER;
                     } else if ( val == "right-bottom" || val == "right_bottom" ){
@@ -956,10 +961,9 @@ namespace SUI {
                 if ( !isnan(static_cast<float>(stateStyle.backgroundSizeY)) ) style.backgroundSizeY = stateStyle.backgroundSizeY;
                 if ( stateStyle.backgroundImage != "" ) style.backgroundImage = stateStyle.backgroundImage;
                 if ( stateStyle.overflow != "" ) style.overflow = stateStyle.overflow;
-                if ( !isnan(static_cast<float>(stateStyle.anchorPoint)) ) style.anchorPoint = stateStyle.anchorPoint;
+                if ( !isnan(static_cast<int>(stateStyle.anchorPoint)) ) style.anchorPoint = stateStyle.anchorPoint;
                 
             }
-            
             
             /*if ( !isnan(static_cast<float>(inlineStyle.width) ) style.width = inlineStyle.width;
             if ( !isnan(static_cast<float>(inlineStyle.height) ) style.height = inlineStyle.height;
@@ -1274,6 +1278,7 @@ namespace SUI {
                 pos.x = x;
                 pos.y = y;
             }
+            
             compiledStyle = styleSelector->compile(state);
             mergeStyles(inlineStyle, true);
             mergeStyles(compiledStyle);
@@ -1385,7 +1390,7 @@ namespace SUI {
              ANCHOR_CENTER_BOTTOM
              */
             
-            switch ( compiledStyle.anchorPoint ){
+            switch ( anchorPoint ){
                 case ANCHOR_LEFT_TOP:
                     break;
                 case ANCHOR_LEFT_CENTER:
@@ -1394,7 +1399,6 @@ namespace SUI {
                 case ANCHOR_LEFT_BOTTOM:
                     boundingRect.y -= height;
                     break;
-                    
                 case ANCHOR_RIGHT_TOP:
                     boundingRect.x -= width;
                     break;
@@ -1423,7 +1427,6 @@ namespace SUI {
             boundingRect.width = width;
             boundingRect.height = height;
             
-            
             if ( width >= 1.0 && height >= 1.0 ) {
                 //ofLog() << boundingRect;
                 ofEnableAlphaBlending();
@@ -1434,7 +1437,8 @@ namespace SUI {
                 ofRotate(rotation);
                 //ofTranslate();
                 ofSetColor(255,255,255, 255.0*opacity);
-                fbo.draw(boundingRect.x-x, boundingRect.y-y);
+                fbo.draw(-(x-boundingRect.x), -(y-boundingRect.y));
+                
                 ofPopView();
             }
             
