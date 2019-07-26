@@ -1221,6 +1221,8 @@ namespace SUI {
         }
         
         bool hitTest(Element& element){
+			//return false;
+			if (&element == NULL) return false;
             if ( element.boundingRect.x == -1 && element.boundingRect.y == -1 && element.boundingRect.width == -1 && element.boundingRect.height == -1 ) return false;
             if ( boundingRect.x == -1 && boundingRect.y == -1 && boundingRect.width == -1 && boundingRect.height == -1 ) return false;
             
