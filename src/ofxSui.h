@@ -718,7 +718,7 @@ namespace SUI {
             hasBackgroundColor = false;
         }
         
-        void mergeStyles(Style& style, bool force = false ){
+        void mergeStyles(Style style, bool force = false ){
             if ( !force ) {
                 if ( isnan(static_cast<float>(x)) ) x = style.x;
                 if ( isnan(static_cast<float>(y)) ) y = style.y;
@@ -733,9 +733,10 @@ namespace SUI {
                     setImage(backgroundImage);
                 }
                 if ( overflow == "" ) overflow = style.overflow;
-                if ( isnan(static_cast<int>(anchorPoint)) ) {
+                if ( anchorPoint < 0 && style.anchorPoint >= 0 ) {
                     anchorPoint = style.anchorPoint;
                 }
+                
                 if ( !hasBackgroundColor && style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
@@ -754,7 +755,7 @@ namespace SUI {
                     setImage(backgroundImage);
                 }
                 if ( style.overflow != "" ) overflow = style.overflow;
-                if ( !isnan(static_cast<int>(style.anchorPoint)) ) {
+                if ( style.anchorPoint >= 0 ) {
                     anchorPoint = style.anchorPoint;
                 }
                 if ( style.hasBackgroundColor ) {
@@ -814,7 +815,6 @@ namespace SUI {
                         style.anchorPoint = ANCHOR_LEFT_BOTTOM;
                     } else if ( val == "right-top" || val == "right_top" ){
                         style.anchorPoint = ANCHOR_RIGHT_TOP;
-                        ofLog() << "RIGHT_TOP";
                     } else if ( val == "right-center" || val == "right_center" ){
                         style.anchorPoint = ANCHOR_RIGHT_CENTER;
                     } else if ( val == "right-bottom" || val == "right_bottom" ){
@@ -933,6 +933,7 @@ namespace SUI {
             stateStyles[2] = s2;
         };
         
+        string selector = "";
         Actions actions;
         
         StyleSheet* stylesheet = NULL;
@@ -961,9 +962,11 @@ namespace SUI {
                 if ( !isnan(static_cast<float>(stateStyle.backgroundSizeY)) ) style.backgroundSizeY = stateStyle.backgroundSizeY;
                 if ( stateStyle.backgroundImage != "" ) style.backgroundImage = stateStyle.backgroundImage;
                 if ( stateStyle.overflow != "" ) style.overflow = stateStyle.overflow;
-                if ( !isnan(static_cast<int>(stateStyle.anchorPoint)) ) style.anchorPoint = stateStyle.anchorPoint;
+                if ( stateStyle.anchorPoint >= 0 )  style.anchorPoint = stateStyle.anchorPoint;
                 
             }
+            
+            //ofLog() << selector << " baseStyle.anchorPoint:" << baseStyle.anchorPoint << ":" << style.anchorPoint;
             
             /*if ( !isnan(static_cast<float>(inlineStyle.width) ) style.width = inlineStyle.width;
             if ( !isnan(static_cast<float>(inlineStyle.height) ) style.height = inlineStyle.height;
@@ -1034,6 +1037,7 @@ namespace SUI {
                         //ofLog() << "reload! " << ofRandomf();
                     } else {
                         StyleSelector* ss = new StyleSelector();
+                        ss->selector = it->first;
                         ss->bind(*this);
                         ss->blocks = getBlocks(it->second);
                         ss->parseBlocks();
@@ -1437,7 +1441,7 @@ namespace SUI {
                 ofRotate(rotation);
                 //ofTranslate();
                 ofSetColor(255,255,255, 255.0*opacity);
-                fbo.draw(-(x-boundingRect.x), -(y-boundingRect.y));
+                fbo.draw(boundingRect.x-x, boundingRect.y-y);
                 
                 ofPopView();
             }
