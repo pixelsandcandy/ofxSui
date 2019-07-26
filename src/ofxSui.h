@@ -1396,7 +1396,7 @@ namespace SUI {
                     break;
                     
                 case ANCHOR_RIGHT_TOP:
-                    boundingRect.y -= width;
+                    boundingRect.x -= width;
                     break;
                 case ANCHOR_RIGHT_CENTER:
                     boundingRect.x -= width;
