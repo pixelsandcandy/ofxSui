@@ -8,6 +8,8 @@ namespace SUI {
     vector<Tween*> tweens;
     vector<Tween*> tweensToDestroy;
     
+    
+    
     void liveReload(bool reload){
         //ofLog() << "============================";
         ofLog() << "liveReload -----------------";
@@ -38,12 +40,7 @@ namespace SUI {
         return getSound(canvas.sounds[id]);
     }
     
-    struct suiTweenArgs {
-        Element& element;
-        Tween& tween;
-        Event eventType;
-        suiTweenArgs(Tween &tween, Element &element, Event eventType):tween(tween),element(element),eventType(eventType){}
-    };
+    
     
     void update(){
         //ofLog() << "# tweens: " << tweens.size();
@@ -118,15 +115,13 @@ namespace SUI {
         this->tween = tween;
     }
     
-    template <typename ArgumentsType, class ListenerClass>
-    Tween* Element::animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
-        return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
-        
-    }
+    
     
     Tween* Element::animate( float timeSeconds, string params ){
         return SUI::animate( this, timeSeconds, params );
     }
+    
+    
     
     Tween* animate( Element* el, float timeSeconds, string params ){
         Tween *t = new Tween();
@@ -134,6 +129,12 @@ namespace SUI {
         
         tweens.push_back( t );
         return t;
+    }
+    
+    template <typename ArgumentsType, class ListenerClass>
+    Tween* Element::animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
+        return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
+        
     }
     
     bool attachedToElement = false;
@@ -295,7 +296,12 @@ namespace SUI {
                 el->update();
                 storeStartValues();
                 
-                suiTweenArgs args(*this, (*el), SUI_EVENT_ANIMATE_START);
+                //suiTweenArgs args(*this, (*el), SUI_EVENT_ANIMATE_START);
+                suiTweenArgs args;
+                args.tween = this;
+                args.element = el;
+                args.eventType = SUI_EVENT_ANIMATE_START;
+                args.id = id;
                 ofNotifyEvent( onstart, args, this );
                 
                 //ofLog() << cmd;
@@ -304,7 +310,11 @@ namespace SUI {
             perc = (currTime - startTime) / duration;
             updateValues();
             
-            suiTweenArgs args(*this, (*el), SUI_EVENT_ANIMATE_STEP);
+            suiTweenArgs args;
+            args.tween = this;
+            args.element = el;
+            args.eventType = SUI_EVENT_ANIMATE_STEP;
+            args.id = id;
             ofNotifyEvent( onStep, args, this );
         } else if ( currTime >= endTime ) {
             active = false;
@@ -312,11 +322,19 @@ namespace SUI {
             perc = 1;
             updateValues();
             
-            suiTweenArgs args(*this, (*el), SUI_EVENT_ANIMATE_STEP);
+            suiTweenArgs args;
+            args.tween = this;
+            args.element = el;
+            args.eventType = SUI_EVENT_ANIMATE_STEP;
+            args.id = id;
             ofNotifyEvent( onStep, args, this );
             
             
-            suiTweenArgs args2(*this, (*el), SUI_EVENT_ANIMATE_COMPLETE);
+            suiTweenArgs args2;
+            args2.tween = this;
+            args2.element = el;
+            args2.eventType = SUI_EVENT_ANIMATE_COMPLETE;
+            args2.id = id;
             ofNotifyEvent( onComplete, args2, this );
             
             if ( attachedToElement ) shoulddestroyTween(this);

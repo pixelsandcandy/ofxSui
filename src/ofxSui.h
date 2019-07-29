@@ -988,8 +988,7 @@ namespace SUI {
     
     struct suiStyleSheetArgs;
     
-    struct suiStyleSelectorArgs;
-    struct suiTweenArgs;
+    class suiStyleSelectorArgs;
     
     class BlocksBase {
     public:
@@ -1964,7 +1963,13 @@ namespace SUI {
     };
     
     
-    struct suiTweenArgs;
+    struct suiTweenArgs {
+        Element* element = NULL;
+        Tween* tween = NULL;
+        Event eventType;
+        string id;
+        //suiTweenArgs(Tween &tween, Element &element, Event eventType):tween(tween),element(element),eventType(eventType){}
+    };
     
     class Tween : public AnimatableParams {
     public:
@@ -2039,7 +2044,7 @@ namespace SUI {
     Tween* animate( Element* el, float timeSeconds, string params );
     
     template <typename ArgumentsType, class ListenerClass>
-    static Tween* animate( Element* el, float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
+    Tween* animate( Element* el, float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
         
         Tween *t = new Tween();
         t->storeComplete( listener, listenerMethod );
