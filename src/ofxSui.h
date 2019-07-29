@@ -1553,9 +1553,9 @@ namespace SUI {
                     text = futureText;
                     rect = SUI::getFont(fontId)->getStringBoundingBox(text,0,0);
                     
-                    ofLog() << "TEXT =============";
-                    ofLog() << text;
-                    ofLog() << alignment;
+                    //ofLog() << "TEXT =============";
+                    //ofLog() << text;
+                    //ofLog() << alignment;
                     
                     switch ( alignment ){
                         case ANCHOR_LEFT_TOP:
