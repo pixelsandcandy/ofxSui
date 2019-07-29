@@ -4,6 +4,7 @@ namespace SUI {
     Settings settings;
     map<string, ofImage*> images;
     map<string, ofSoundPlayer*> sounds;
+    map<string, ofTrueTypeFont*> fonts;
     vector<Tween*> tweens;
     vector<Tween*> tweensToDestroy;
     

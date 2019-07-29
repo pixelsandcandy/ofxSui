@@ -24,6 +24,7 @@ namespace SUI {
     void liveReload(bool reload = true);
     extern map<string, ofImage*> images;
     extern map<string, ofSoundPlayer*> sounds;
+    extern map<string, ofTrueTypeFont*> fonts;
     class Canvas;
     
     //========================================================================================================
@@ -68,10 +69,20 @@ namespace SUI {
         SUI::images[filepath]->load(ofToDataPath(filepath));
     };
     
+    static void setFont(string filepath, int size){
+        string id = filepath + "," + ofToString(size);
+        if ( SUI::fonts.count(id) == 0 ) SUI::fonts[id] = new ofTrueTypeFont();
+        SUI::fonts[id]->load(ofToDataPath(filepath), size);
+    };
+    
     static void setSound(string filepath, float volume = 1.0){
         if ( SUI::sounds.count(filepath) == 0 ) SUI::sounds[filepath] = new ofSoundPlayer();
         SUI::sounds[filepath]->load(ofToDataPath(filepath));
         SUI::sounds[filepath]->setVolume(volume);
+    };
+    
+    static ofTrueTypeFont* getFont(string id){
+        return SUI::fonts[id];
     };
     
     static ofSoundPlayer* getSound(string id){
@@ -623,7 +634,9 @@ namespace SUI {
     class Style : public AnimatableParams {
     public:
         ~Style(){};
-        Style(){};
+        Style(){
+            reset();
+        };
         
         
         
@@ -640,7 +653,10 @@ namespace SUI {
             x = copyStyle.x;
             y = copyStyle.x;
             anchorPoint = copyStyle.anchorPoint;
+            textAlignment = copyStyle.textAlignment;
+            font = copyStyle.font;
             hasBackgroundColor = copyStyle.hasBackgroundColor;
+            hasFontColor = copyStyle.hasFontColor;
         }
         
         void reset(bool resetPosition = true){
@@ -656,10 +672,17 @@ namespace SUI {
             backgroundSizeX = nanf("");
             backgroundSizeY = nanf("");
             anchorPoint = nan(0);
+            textAlignment = nan(0);
             overflow = "auto";
             backgroundColor = ofColor::white;
             backgroundImage = "";
+            hasFontColor = false;
             hasBackgroundColor = false;
+            font = "";
+            padding[0] = 0;
+            padding[1] = 0;
+            padding[2] = 0;
+            padding[3] = 0;
         }
         
         void resetBase(){
@@ -685,9 +708,12 @@ namespace SUI {
             opacity = 1.0;
             rotation = 0.0;
             anchorPoint = nan(0);
+            textAlignment = nan(0);
             overflow = "auto";
             backgroundColor = ofColor::white;
             backgroundImage = "";
+            font = "";
+            hasFontColor = false;
             hasBackgroundColor = false;
             
         }
@@ -706,12 +732,21 @@ namespace SUI {
         
         
         int anchorPoint = nan(0);
+        int textAlignment = nan(0);
+        vector<int> padding = {0,0,0,0};
         
         void setBackgroundColor(string hex){
             string col = ofJoinString(ofSplitString(hex,"#"), "");
             float floatColor = stoul(col, nullptr, 16);
             backgroundColor.setHex(floatColor);
             hasBackgroundColor = true;
+        }
+        
+        void setFontColor(string hex){
+            string col = ofJoinString(ofSplitString(hex,"#"), "");
+            float floatColor = stoul(col, nullptr, 16);
+            fontColor.setHex(floatColor);
+            hasFontColor = true;
         }
         
         void removeBackgroundColor(){
@@ -737,9 +772,17 @@ namespace SUI {
                     anchorPoint = style.anchorPoint;
                 }
                 
+                if ( font == "" ) font = style.font;
+                if ( textAlignment < 0 && style.textAlignment >= 0 ) textAlignment = style.textAlignment;
+                
                 if ( !hasBackgroundColor && style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
+                }
+                
+                if ( !hasFontColor && style.hasFontColor ) {
+                    fontColor = style.fontColor;
+                    hasFontColor = true;
                 }
             } else {
                 if ( !isnan(static_cast<float>(style.x)) ) x = style.x;
@@ -758,9 +801,16 @@ namespace SUI {
                 if ( style.anchorPoint >= 0 ) {
                     anchorPoint = style.anchorPoint;
                 }
+                if ( style.font != "" ) font = style.font;
+                if ( style.textAlignment >= 0 ) textAlignment = style.textAlignment;
                 if ( style.hasBackgroundColor ) {
                     backgroundColor = style.backgroundColor;
                     hasBackgroundColor = true;
+                }
+                
+                if ( style.hasFontColor ) {
+                    fontColor = style.fontColor;
+                    hasFontColor = true;
                 }
             }
             
@@ -769,6 +819,11 @@ namespace SUI {
         
         bool hasBackgroundColor = false;
         ofColor backgroundColor = ofColor::white;
+        
+        string font = "";
+        bool hasFontColor = false;
+        ofColor fontColor = ofColor::white;
+        
         string backgroundImage = "";
         string overflow = "";
         vector<string> rawStyles;
@@ -787,11 +842,17 @@ namespace SUI {
                 //return;
                 keyValue[0] = ofToLower(keyValue[0]);
                 
-                if ( keyValue[0] == "background-color" ){
+                if ( keyValue[0] == "background-color" || keyValue[0] == "backgroundcolor" ){
                     if ( keyValue[1].find("#") != string::npos ){
                         //string col = ofJoinString(ofSplitString(keyValue[1],"#"), "");
                         //float floatColor = stoul(col, nullptr, 16);
-                        style.setBackgroundColor(keyValue[1]);
+                        style.setBackgroundColor(cleanString(keyValue[1]));
+                    }
+                } else if ( keyValue[0] == "color" || keyValue[0] == "font-color" || keyValue[0] == "fontcolor" ){
+                    if ( keyValue[1].find("#") != string::npos ){
+                        //string col = ofJoinString(ofSplitString(keyValue[1],"#"), "");
+                        //float floatColor = stoul(col, nullptr, 16);
+                        style.setFontColor(cleanString(keyValue[1]));
                     }
                 } else if ( keyValue[0] == "anchorpoint" || keyValue[0] == "anchor-point" ){
                     //baseStyle.width = ofToInt(keyValue[1]);
@@ -847,6 +908,35 @@ namespace SUI {
                     setImage(style.backgroundImage);
                 } else if ( keyValue[0] == "overflow" ){
                     style.overflow = cleanString(keyValue[1], true);
+                } else if (keyValue[0] == "font") {
+                    vector<string> filepathSize = ofSplitString(keyValue[1], ",");
+                    float size = filepathSize.size() == 2 ? ofToInt(filepathSize[1]) : 12;
+                    string filepath = cleanString(filepathSize[0], false);
+                    SUI::setFont( filepath, size );
+                    style.font = filepath + "," + ofToString(size);
+                    
+                } else if (keyValue[0] == "text-align" || keyValue[0] == "textAlign" ){
+                    string val = cleanString(ofToLower(keyValue[1]), true);
+                    
+                    if ( val == "left-top" || val == "left_top" ){
+                        style.textAlignment = ANCHOR_LEFT_TOP;
+                    } else if ( val == "left-center" || val == "left_center" ){
+                        style.textAlignment = ANCHOR_LEFT_CENTER;
+                    } else if ( val == "left-bottom" || val == "left_bottom" ){
+                        style.textAlignment = ANCHOR_LEFT_BOTTOM;
+                    } else if ( val == "right-top" || val == "right_top" ){
+                        style.textAlignment = ANCHOR_RIGHT_TOP;
+                    } else if ( val == "right-center" || val == "right_center" ){
+                        style.textAlignment = ANCHOR_RIGHT_CENTER;
+                    } else if ( val == "right-bottom" || val == "right_bottom" ){
+                        style.textAlignment = ANCHOR_RIGHT_BOTTOM;
+                    } else if ( val == "center-top" || val == "center_top" ){
+                        style.textAlignment = ANCHOR_CENTER_TOP;
+                    } else if ( val == "center-center" || val == "center_center" ){
+                        style.textAlignment = ANCHOR_CENTER_CENTER;
+                    } else if ( val == "center-bottom" || val == "center_bottom" ){
+                        style.textAlignment = ANCHOR_CENTER_BOTTOM;
+                    }
                 } else if ( keyValue[0] == "background-size" ){
                     keyValue[1] = cleanString(keyValue[1]);
                     vector<string> values = ofSplitString(keyValue[1],"%");
@@ -1228,6 +1318,12 @@ namespace SUI {
             return *this;
         }
         
+        Element& setFontColor(string hexString){
+            Style::setFontColor(hexString);
+            updateStyle();
+            return *this;
+        }
+        
         bool hitTest(Element& element){
 			//return false;
 			if (&element == NULL) return false;
@@ -1312,9 +1408,91 @@ namespace SUI {
             //copyInlineStyles();
         }
         
+        // text
         
         
+        struct TextSettings {
+            string text = "";
+            string futureText = "";
+            ofRectangle rect;
+            
+            ofRectangle calibratedRect;
+            bool isCalibrated = false;
+            float offsetY = 0;
+            glm::vec2 offset;
+            
+            void setText(string text){
+                futureText = text;
+            }
+            
+            void draw(string fontId, int alignment, int width, int height, ofColor color = ofColor::red ){
+                if ( text == "" && futureText == "" ) return;
+                
+                if ( SUI::getFont(fontId) == NULL ) return;
+                
+                if (!isCalibrated ) {
+                    isCalibrated = true;
+                    
+                    calibratedRect = SUI::getFont(fontId)->getStringBoundingBox("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 0,0);
+                    offsetY = SUI::getFont(fontId)->getSize();
+                }
+                
+                if ( text != futureText ){
+                    text = futureText;
+                    rect = SUI::getFont(fontId)->getStringBoundingBox(text,0,0);
+                    
+                    ofLog() << "TEXT =============";
+                    ofLog() << text;
+                    ofLog() << alignment;
+                    
+                    switch ( alignment ){
+                        case ANCHOR_LEFT_TOP:
+                            offset = glm::vec2(0, 0);
+                            break;
+                        case ANCHOR_LEFT_CENTER:
+                            offset = glm::vec2(0, (height-rect.height)*.5 );
+                            break;
+                        case ANCHOR_LEFT_BOTTOM:
+                            offset = glm::vec2(0, (height-rect.height) );
+                            break;
+                        case ANCHOR_RIGHT_TOP:
+                            offset = glm::vec2(width-rect.width, 0);
+                            break;
+                        case ANCHOR_RIGHT_CENTER:
+                            offset = glm::vec2(width-rect.width, (height-rect.height)*.5 );
+                            break;
+                        case ANCHOR_RIGHT_BOTTOM:
+                            offset = glm::vec2(width-rect.width, (height-rect.height) );
+                            break;
+                        case ANCHOR_CENTER_TOP:
+                            offset = glm::vec2((width-rect.width)*.5, 0);
+                            break;
+                        case ANCHOR_CENTER_CENTER:
+                            offset = glm::vec2((width-rect.width)*.5, (height-rect.height)*.5 );
+                            break;
+                        case ANCHOR_CENTER_BOTTOM:
+                            offset = glm::vec2((width-rect.width)*.5, (height-rect.height) );
+                            break;
+                    }
+                    
+                    offset.y += offsetY;
+                }
+                
+                ofSetColor(color, 255);
+                SUI::getFont(fontId)->drawString( text, offset.x, offset.y );
+                
+            }
+        };
         
+        TextSettings textSettings;
+        
+        void setText(string text){
+            textSettings.setText(text);
+            render();
+        };
+        
+        
+        //
         
         
         
@@ -1355,6 +1533,10 @@ namespace SUI {
                 img = NULL;
                 delete img;
             }
+            
+            if ( hasFontColor ) textSettings.draw(font, textAlignment, width, height, fontColor);
+            else textSettings.draw(font, textAlignment, width, height);
+            
             fbo.end();
         }
         
@@ -1572,7 +1754,7 @@ namespace SUI {
             if ( !found ) return false;
             
             for (auto it=elements.begin(); it!=elements.end(); ++it){
-                if ( it->second->id == id ) {
+                if ( it->second != NULL && it->second->id == id ) {
                     return true;
                 }
             }
@@ -1593,7 +1775,7 @@ namespace SUI {
             if ( !found ) return NULL;
             
             for (auto it=elements.begin(); it!=elements.end(); ++it){
-                if ( it->second->id == id ) return it->second;
+                if ( it->second != NULL && it->second->id == id ) return it->second;
             }
             return NULL;
         }
