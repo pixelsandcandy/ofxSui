@@ -561,7 +561,7 @@ namespace SUI {
         float y = nanf("");
         float width = nanf("");
         float height = nanf("");
-        float scale = nanf("");
+        float scale = 1.0;
         float rotation = nanf("");
         float opacity = nanf("");
         float backgroundSizeX = nanf("");
@@ -572,7 +572,7 @@ namespace SUI {
             y = nanf("");
             width = nanf("");
             height = nanf("");
-            scale = nanf("");
+            scale = 1.0;
             rotation = nanf("");
             opacity = nanf("");
             backgroundSizeX = nanf("");
@@ -769,7 +769,7 @@ namespace SUI {
             }
             width = nanf("");
             height = nanf("");
-            scale = nanf("");
+            scale = 1.0;
             rotation = nanf("");
             opacity = nanf("");
             backgroundSizeX = nanf("");
@@ -1735,7 +1735,7 @@ namespace SUI {
                 ofRotate(rotation);
                 //ofTranslate();
                 ofSetColor(255,255,255, 255.0*opacity);
-                fbo.draw(boundingRect.x-x, boundingRect.y-y);
+                fbo.draw((boundingRect.x-x)*scale, (boundingRect.y-y)*scale, width*scale, height*scale );
                 
                 ofPopView();
             }
