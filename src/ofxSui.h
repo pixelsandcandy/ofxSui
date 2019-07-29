@@ -11,7 +11,7 @@
 #include <cmath>
 #include <boost/range/adaptor/reversed.hpp>
 
-using namespace std;
+//using namespace std;
 
 namespace SUI {
     
@@ -581,6 +581,109 @@ namespace SUI {
     };
     
     class Element;
+    
+    class Tween;
+    
+    struct suiTweenArgs {
+        Element* element = NULL;
+        Tween* tween = NULL;
+        Event eventType;
+        string id;
+        //suiTweenArgs(Tween &tween, Element &element, Event eventType):tween(tween),element(element),eventType(eventType){}
+    };
+    
+    
+    class Tween : public AnimatableParams {
+    public:
+        ~Tween(){};
+        Tween(){
+            valueNames.clear();
+        };
+        
+        string id = "";
+        
+        string getID() {
+            return id;
+        }
+        
+        ofEvent<suiTweenArgs> onComplete;
+        ofEvent<suiTweenArgs> onstart;
+        ofEvent<suiTweenArgs> onStep;
+        
+        int UID = abs((int)ofRandom(7, 7777777777));
+        
+        float delay = 0.0;
+        float startTime = 0.0;
+        float endTime = 0.0;
+        float duration = 0.0;
+        float perc = 0.0;
+        
+        float getPercentCompleted(){
+            return perc;
+        }
+        
+        float getProgress(){
+            return perc;
+        }
+        
+        vector<string> valueNames = vector<string>();
+        map<string, float> endValues;
+        map<string, float> startValues;
+        
+        std::function<float(float,float,float,float)> ease = ofxeasing::linear::easeNone;
+        
+        Element* el;
+        bool active = false;
+        
+        string cmd;
+        bool firstStep = false;
+        
+        void start( Element* el, float timeSeconds, string params, bool attachToElement = true );
+        void stop();
+        void update( float currTime );
+        void updateValues();
+        void storeValue( string param, string val );
+        void storeValue( string param, float val );
+        void storeStartValues();
+        void setID( string name ){
+            id = name;
+        }
+        
+        
+        template <typename ArgumentsType, class ListenerClass>
+        void storeComplete( ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&)){
+            
+        }
+        
+        
+    };
+    
+    extern vector<Tween*> tweens;
+    extern vector<Tween*> tweensToDestroy;
+    
+    
+    
+    template <typename ArgumentsType, class ListenerClass>
+    static Tween* animate( Element* el, float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
+        
+        Tween *t = new Tween();
+        t->storeComplete( listener, listenerMethod );
+        
+        ofAddListener( t->onComplete, listener, listenerMethod );
+        
+        t->start( el, timeSeconds, params );
+        
+        tweens.push_back( t );
+        return t;
+    }
+    
+    static Tween* animate( Element* el, float timeSeconds, string params ){
+        Tween *t = new Tween();
+        t->start( el, timeSeconds, params );
+        
+        tweens.push_back( t );
+        return t;
+    }
     
     class Action {
     public:
@@ -1197,8 +1300,13 @@ namespace SUI {
         suiStyleSheetArgs(StyleSheet &stylesheet):stylesheet(stylesheet){}
     };
     
-    class Tween;
+    
     class Canvas;
+    
+    
+    
+    
+    
     
     class Element : public StylerenderParams, public Style, public CustomParams {
     public:
@@ -1235,9 +1343,14 @@ namespace SUI {
         }
         
         template <typename ArgumentsType, class ListenerClass>
-        Tween* animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) );
+        Tween* animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
+            return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
+            
+        }
         
-        Tween* animate( float timeSeconds, string params );
+        Tween* animate( float timeSeconds, string params ){
+            return SUI::animate( this, timeSeconds, params );
+        }
         
         Tween* tween = NULL;
         
@@ -1963,101 +2076,12 @@ namespace SUI {
     };
     
     
-    struct suiTweenArgs {
-        Element* element = NULL;
-        Tween* tween = NULL;
-        Event eventType;
-        string id;
-        //suiTweenArgs(Tween &tween, Element &element, Event eventType):tween(tween),element(element),eventType(eventType){}
-    };
-    
-    class Tween : public AnimatableParams {
-    public:
-        ~Tween(){};
-        Tween(){
-            valueNames.clear();
-        };
-        
-        string id = "";
-        
-        string getID() {
-            return id;
-        }
-        
-        ofEvent<suiTweenArgs> onComplete;
-        ofEvent<suiTweenArgs> onstart;
-        ofEvent<suiTweenArgs> onStep;
-        
-        int UID = abs((int)ofRandom(7, 7777777777));
-        
-        float delay = 0.0;
-        float startTime = 0.0;
-        float endTime = 0.0;
-        float duration = 0.0;
-        float perc = 0.0;
-        
-        float getPercentCompleted(){
-            return perc;
-        }
-        
-        float getProgress(){
-            return perc;
-        }
-        
-        vector<string> valueNames = vector<string>();
-        map<string, float> endValues;
-        map<string, float> startValues;
-        
-        std::function<float(float,float,float,float)> ease = ofxeasing::linear::easeNone;
-        
-        Element* el;
-        bool active = false;
-        
-        string cmd;
-        bool firstStep = false;
-        
-        void start( Element* el, float timeSeconds, string params, bool attachToElement = true );
-        void stop();
-        void update( float currTime );
-        void updateValues();
-        void storeValue( string param, string val );
-        void storeValue( string param, float val );
-        void storeStartValues();
-        void setID( string name ){
-            id = name;
-        }
-        
-        
-        template <typename ArgumentsType, class ListenerClass>
-        void storeComplete( ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&)){
-            
-        }
-        
-        
-    };
     
     
     
     
-    extern vector<Tween*> tweens;
     
-    Tween* animate( Element* el, float timeSeconds, string params );
     
-    template <typename ArgumentsType, class ListenerClass>
-    Tween* animate( Element* el, float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
-        
-        Tween *t = new Tween();
-        t->storeComplete( listener, listenerMethod );
-        
-        ofAddListener( t->onComplete, listener, listenerMethod );
-        
-        t->start( el, timeSeconds, params );
-        
-        tweens.push_back( t );
-        return t;
-    }
-    
-    extern vector<Tween*> tweensToDestroy;
     
     static void shoulddestroyTween( Tween* t ){
         tweensToDestroy.push_back( t );
@@ -2080,7 +2104,6 @@ namespace SUI {
         auto it = std::find(tweens.begin(), tweens.end(), t);
         if (it != tweens.end()) { tweens.erase(it); }
     }
-    
 }
 
 #endif

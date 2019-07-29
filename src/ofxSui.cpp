@@ -117,25 +117,19 @@ namespace SUI {
     
     
     
-    Tween* Element::animate( float timeSeconds, string params ){
-        return SUI::animate( this, timeSeconds, params );
-    }
     
     
     
-    Tween* animate( Element* el, float timeSeconds, string params ){
-        Tween *t = new Tween();
-        t->start( el, timeSeconds, params );
-        
-        tweens.push_back( t );
-        return t;
-    }
     
-    template <typename ArgumentsType, class ListenerClass>
-    Tween* Element::animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
-        return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
-        
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     bool attachedToElement = false;
     
