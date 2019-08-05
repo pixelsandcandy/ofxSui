@@ -129,7 +129,7 @@ namespace SUI {
         
     }
     
-    void Element::stopTween(){
+    void Element::stop(){
         if ( this->tween != NULL ) {
             this->tween->stop();
             if ( !tryDestroyTween(this->tween) ) shouldDestroyTween(this->tween);

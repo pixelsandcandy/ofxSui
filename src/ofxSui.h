@@ -1373,7 +1373,7 @@ namespace SUI {
         
         Tween* tween = NULL;
         
-        void stopTween();
+        void stop();
         
         void storeTween(Tween* tween);
         
