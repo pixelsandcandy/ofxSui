@@ -7,8 +7,7 @@ namespace SUI {
     map<string, ofTrueTypeFont*> fonts;
     vector<Tween*> tweens;
     vector<Tween*> tweensToDestroy;
-    bool tweenUpdate = false;
-    
+    bool updateLock = false;
     
     void liveReload(bool reload){
         //ofLog() << "============================";
@@ -40,37 +39,59 @@ namespace SUI {
         return getSound(canvas.sounds[id]);
     }
     
-    
-    
-    void update(){
-        //ofLog() << "# tweens: " << tweens.size();
+    void update(ofEventArgs & args){
         
-        //ofLog() << "update!!!";
-        
-        if (!tweenUpdate){
-            tweenUpdate = true;
-            ofAddListener( ofEvents().update, update, OF_EVENT_ORDER_BEFORE_APP );
+        for (vector<Tween*>::iterator it = tweensToDestroy.begin(); it !=  tweensToDestroy.end(); it++){
+            destroyTween( (*it) );
         }
         
-        //
+        tweensToDestroy.clear();
+        
+        //ofSleepMillis(5);
+        
         
         float currTime = ofGetElapsedTimeMillis();
         
+        /*updateLock = true;
+        
+        
         int max = tweens.size();
-        int i = 0;
+        int i = -1;
         for (vector<Tween*>::iterator it = tweens.begin(); it != tweens.end(); it++){
             //if ( i >= 0 && i < max && (*it) != NULL && (*it) != nullptr && (*it)->el != NULL ) (*it)->update( currTime );
             //else return;
+            i++;
+            
             if ( i >= 0 && i < max ) {
                 if ( (*it) == NULL ) continue;
+                if ( count(tweensToDestroy.begin(), tweensToDestroy.end(), (*it) ) > 0 ) continue;
                 if ( (*it)->shouldDestroy == true ) continue;
                 if ( (*it)->active == true && (*it)->duration != 0.0 ) (*it)->update( currTime );
             } else {
                 return;
             }
             //(*it)->update( currTime );
-            i++;
+            
         }
+        updateLock = false;
+         
+         */
+        
+        updateLock = true;
+        for ( auto tween : tweens ){
+            if (tween != NULL && tween->active == true && tween->duration != 0.0 ) tween->update(currTime);
+        }
+        updateLock = false;
+    }
+    
+    void update(){
+        //ofLog() << "# tweens: " << tweens.size();
+        
+        //ofLog() << "update!!!"
+        
+        //
+        
+        
         
     }
     
@@ -111,7 +132,10 @@ namespace SUI {
     void Element::stopTween(){
         if ( this->tween != NULL ) {
             this->tween->stop();
+            if ( !tryDestroyTween(this->tween) ) shouldDestroyTween(this->tween);
+            this->tween = 0;
             this->tween = NULL;
+            delete this->tween;
         }
     }
     
@@ -144,7 +168,7 @@ namespace SUI {
             shouldDestroyTween(this);
             return;
         }
-        
+        valueNames = vector<string>();
         firstStep = true;
         active = true;
         shouldDestroy = false;
@@ -251,6 +275,7 @@ namespace SUI {
     }
     
     void Tween::storeStartValues(){
+        
         for ( vector<string>::iterator it = valueNames.begin(); it != valueNames.end(); it++ ){
             if ( (*it) == "x" ){
                 startValues[ (*it) ] = el->x;
@@ -350,33 +375,33 @@ namespace SUI {
     
     void Tween::updateValues(){
         if ( valueNames.size() == 0 ) return;
-        for ( vector<string>::iterator it = valueNames.begin(); it != valueNames.end(); it++ ){
-            if ( (*it) == "x" ){
+        for ( auto& key : valueNames ){
+            if ( key == "x" ){
                 //x = el->getPosition().x;
                 
-                x = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
+                x = ofxeasing::map(perc, 0.0, 1.0, startValues[key], endValues[key], ease);
                 //ofLog() << "(" << x << ") " << startValues[(*it)] << "->" << endValues[(*it)];
                 el->x = x;
-            } else if ( (*it) == "y" ){
-                y = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
+            } else if ( key == "y" ){
+                y = ofxeasing::map(perc, 0.0, 1.0, startValues[key], endValues[key], ease);
                 el->y = y;
-            } else if ( (*it) == "width" ){
-                width = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
+            } else if ( key == "width" ){
+                width = ofxeasing::map(perc, 0.0, 1.0, startValues[key], endValues[key], ease);
                 el->width = width;
-            } else if ( (*it) == "height" ){
-                height = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
+            } else if ( key == "height" ){
+                height = ofxeasing::map(perc, 0.0, 1.0, startValues[key], endValues[key], ease);
                 el->height = height;
-            } else if ( (*it) == "rotation" ){
-                rotation = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
+            } else if ( key == "rotation" ){
+                rotation = ofxeasing::map(perc, 0.0, 1.0, startValues[key], endValues[key], ease);
                 el->rotation = rotation;
-            } else if ( (*it) == "opacity" ){
-                opacity = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
+            } else if ( key == "opacity" ){
+                opacity = ofxeasing::map(perc, 0.0, 1.0, startValues[key], endValues[key], ease);
                 //if ( el->getName() == "#ShaveOver" ) ofLog() << opacity;
                 
                 el->opacity = opacity;
                 
-            } else if ( (*it) == "scale" ){
-                scale = ofxeasing::map(perc, 0.0, 1.0, startValues[(*it)], endValues[(*it)], ease);
+            } else if ( key == "scale" ){
+                scale = ofxeasing::map(perc, 0.0, 1.0, startValues[key], endValues[key], ease);
                 el->scale = scale;
             }
         }

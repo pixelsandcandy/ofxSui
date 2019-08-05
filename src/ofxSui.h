@@ -1313,7 +1313,25 @@ namespace SUI {
     public:
         ~Element(){
             //stylesheet = 0;
-            //delete stylesheet;
+            canvas = 0;
+            canvas = NULL;
+            delete canvas;
+            
+            parent = 0;
+            parent = NULL;
+            delete parent;
+            
+            styleSelector = 0;
+            styleSelector = NULL;
+            delete styleSelector;
+            
+            parent = 0;
+            parent = NULL;
+            delete parent;
+            
+            tween = 0;
+            tween = NULL;
+            delete tween;
         };
         
         Element(){};
@@ -2076,26 +2094,40 @@ namespace SUI {
         
     };
     
+    extern bool updateLock;
     
     
     
-    
-    
+    static bool tryDestroyTween(const Tween* t){
+        if ( !updateLock ){
+            
+            auto it = std::find(tweens.begin(), tweens.end(), t);
+            if (it != tweens.end()) { tweens.erase(it); }
+            return true;
+        }
+        return false;
+    }
     
     
     
     static void shouldDestroyTween( Tween* t ){
         if ( t != NULL ){
             if ( t->shouldDestroy == true ) return;
-            t->shouldDestroy = true;
             t->stop();
             t->el = 0;
             t->el = NULL;
             delete t->el;
-            tweensToDestroy.push_back( t );
+            
+            if ( !tryDestroyTween(t) ){
+                t->shouldDestroy = true;
+                tweensToDestroy.push_back( t );
+            }
+            
         }
     }
-    extern bool tweenUpdate;
+    
+    
+    
     void update();
     
     static void destroyTween(const Tween* t){
@@ -2114,7 +2146,7 @@ namespace SUI {
         if (it != tweens.end()) { tweens.erase(it); }
     }
     
-    static void update(ofEventArgs & args){
+    static void updateTween(ofEventArgs & args){
         for (vector<Tween*>::iterator it = tweensToDestroy.begin(); it !=  tweensToDestroy.end(); it++){
             destroyTween( (*it) );
         }
@@ -2122,6 +2154,14 @@ namespace SUI {
         tweensToDestroy.clear();
     }
     
+    
+    
+    void update(ofEventArgs & args);
+    
+    static void setup(){
+        ofAddListener( ofEvents().update, update, OF_EVENT_ORDER_AFTER_APP );
+        ofAddListener( ofEvents().update, updateTween, OF_EVENT_ORDER_BEFORE_APP );
+    }
 }
 
 #endif
