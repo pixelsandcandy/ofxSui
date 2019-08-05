@@ -617,6 +617,7 @@ namespace SUI {
         float endTime = 0.0;
         float duration = 0.0;
         float perc = 0.0;
+        bool shouldDestroy = false;
         
         float getPercentCompleted(){
             return perc;
@@ -632,7 +633,7 @@ namespace SUI {
         
         std::function<float(float,float,float,float)> ease = ofxeasing::linear::easeNone;
         
-        Element* el;
+        Element* el = NULL;
         bool active = false;
         
         string cmd;
@@ -2083,10 +2084,18 @@ namespace SUI {
     
     
     
-    static void shoulddestroyTween( Tween* t ){
-        tweensToDestroy.push_back( t );
+    static void shouldDestroyTween( Tween* t ){
+        if ( t != NULL ){
+            if ( t->shouldDestroy == true ) return;
+            t->shouldDestroy = true;
+            t->stop();
+            t->el = 0;
+            t->el = NULL;
+            delete t->el;
+            tweensToDestroy.push_back( t );
+        }
     }
-    
+    extern bool tweenUpdate;
     void update();
     
     static void destroyTween(const Tween* t){
@@ -2104,6 +2113,15 @@ namespace SUI {
         auto it = std::find(tweens.begin(), tweens.end(), t);
         if (it != tweens.end()) { tweens.erase(it); }
     }
+    
+    static void update(ofEventArgs & args){
+        for (vector<Tween*>::iterator it = tweensToDestroy.begin(); it !=  tweensToDestroy.end(); it++){
+            destroyTween( (*it) );
+        }
+        
+        tweensToDestroy.clear();
+    }
+    
 }
 
 #endif

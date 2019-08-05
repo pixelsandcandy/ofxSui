@@ -7,7 +7,7 @@ namespace SUI {
     map<string, ofTrueTypeFont*> fonts;
     vector<Tween*> tweens;
     vector<Tween*> tweensToDestroy;
-    
+    bool tweenUpdate = false;
     
     
     void liveReload(bool reload){
@@ -47,6 +47,13 @@ namespace SUI {
         
         //ofLog() << "update!!!";
         
+        if (!tweenUpdate){
+            tweenUpdate = true;
+            ofAddListener( ofEvents().update, update, OF_EVENT_ORDER_BEFORE_APP );
+        }
+        
+        //
+        
         float currTime = ofGetElapsedTimeMillis();
         
         int max = tweens.size();
@@ -55,7 +62,9 @@ namespace SUI {
             //if ( i >= 0 && i < max && (*it) != NULL && (*it) != nullptr && (*it)->el != NULL ) (*it)->update( currTime );
             //else return;
             if ( i >= 0 && i < max ) {
-                if ( (*it) != NULL && (*it)->active && !isnan(static_cast<float>((*it)->duration)) && (*it)->duration != 0.0 ) (*it)->update( currTime );
+                if ( (*it) == NULL ) continue;
+                if ( (*it)->shouldDestroy == true ) continue;
+                if ( (*it)->active == true && (*it)->duration != 0.0 ) (*it)->update( currTime );
             } else {
                 return;
             }
@@ -63,11 +72,6 @@ namespace SUI {
             i++;
         }
         
-        for (vector<Tween*>::iterator it = tweensToDestroy.begin(); it !=  tweensToDestroy.end(); it++){
-            destroyTween( (*it) );
-        }
-        
-        tweensToDestroy.clear();
     }
     
     void Canvas::update(){
@@ -105,9 +109,9 @@ namespace SUI {
     }
     
     void Element::stopTween(){
-        if ( tween != NULL ) {
-            tween->stop();
-            tween = NULL;
+        if ( this->tween != NULL ) {
+            this->tween->stop();
+            this->tween = NULL;
         }
     }
     
@@ -136,12 +140,20 @@ namespace SUI {
     //
     
     void Tween::start( Element* el, float timeSeconds, string params, bool attachToElement ){
+        if ( el == NULL ) {
+            shouldDestroyTween(this);
+            return;
+        }
+        
         firstStep = true;
         active = true;
+        shouldDestroy = false;
         this->el = el;
         if ( attachToElement ) {
             attachedToElement = true;
-            el->stopTween();
+            if ( el->tween != NULL ){
+                shouldDestroyTween(el->tween);
+            }
             el->storeTween(this);
         }
         duration = timeSeconds*1000;
@@ -280,7 +292,8 @@ namespace SUI {
     
     
     void Tween::update(float currTime){
-        if ( !active || el == NULL ) return;
+        if ( active == false ) return;
+        if ( el == NULL ) return;
         
         if ( currTime >= startTime && currTime < endTime ){
             
@@ -331,7 +344,7 @@ namespace SUI {
             args2.id = id;
             ofNotifyEvent( onComplete, args2, this );
             
-            if ( attachedToElement ) shoulddestroyTween(this);
+            if ( attachedToElement ) shouldDestroyTween(this);
         }
     }
     
