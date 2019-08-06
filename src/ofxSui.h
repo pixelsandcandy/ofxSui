@@ -1363,12 +1363,29 @@ namespace SUI {
         
         template <typename ArgumentsType, class ListenerClass>
         Tween* animate( float timeSeconds, string params, ListenerClass* listener, void (ListenerClass::*listenerMethod)(ArgumentsType&) ){
-            return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
+            /*if ( this->tween == NULL ) return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
+            else {
+                this->tween->stop();
+                this->tween->storeComplete( listener, listenerMethod );
+                ofAddListener( this->tween->onComplete, listener, listenerMethod );
+                
+                this->tween->start( this, timeSeconds, params );
+                return this->tween;
+            }*/
             
+            return SUI::animate( this, timeSeconds, params, listener, listenerMethod );
         }
         
         Tween* animate( float timeSeconds, string params ){
             return SUI::animate( this, timeSeconds, params );
+            
+            /*if ( this->tween == NULL ) return SUI::animate( this, timeSeconds, params );
+            else {
+                //this->tween->stop();
+                if ( count(tweens.begin(), tweens.end(), this->tween) == 0 ) tweens.push_back( this->tween );
+                this->tween->start( this, timeSeconds, params );
+                return this->tween;
+            }*/
         }
         
         Tween* tween = NULL;
