@@ -41,17 +41,6 @@ namespace SUI {
     
     void update(ofEventArgs & args){
         
-        for (vector<Tween*>::iterator it = tweensToDestroy.begin(); it !=  tweensToDestroy.end(); it++){
-            destroyTween( (*it) );
-        }
-        
-        tweensToDestroy.clear();
-        
-        //ofSleepMillis(5);
-        
-        
-        float currTime = ofGetElapsedTimeMillis();
-        
         /*updateLock = true;
         
         
@@ -77,11 +66,29 @@ namespace SUI {
          
          */
         
-        updateLock = true;
-        for ( auto tween : tweens ){
-            if (tween != NULL && tween->active == true && tween->duration != 0.0 ) tween->update(currTime);
+        float currTime = ofGetElapsedTimeMillis();
+        
+        
+        {
+            updateLock = true;
+            for ( auto& tween : tweens ){
+                if ( tween == NULL ) return;
+                if ( tween->active == true && tween->duration != 0.0 ) tween->update(currTime);
+            }
+            updateLock = false;
         }
-        updateLock = false;
+        
+        
+        {
+            for ( auto tween : tweensToDestroy ){
+                destroyTween( tween );
+            }
+            
+            tweensToDestroy.clear();
+        }
+        
+        
+        
     }
     
     void update(){
@@ -374,8 +381,9 @@ namespace SUI {
     }
     
     void Tween::updateValues(){
-        if ( valueNames.size() == 0 ) return;
+        if ( valueNames.size() == 0 || valueNames.size() > 20 ) return;
         for ( auto& key : valueNames ){
+            if ( key == "") continue;
             if ( key == "x" ){
                 //x = el->getPosition().x;
                 

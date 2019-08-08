@@ -2177,7 +2177,7 @@ namespace SUI {
     
     static void setup(){
         ofAddListener( ofEvents().update, update, OF_EVENT_ORDER_AFTER_APP );
-        ofAddListener( ofEvents().update, updateTween, OF_EVENT_ORDER_BEFORE_APP );
+        //ofAddListener( ofEvents().update, updateTween, OF_EVENT_ORDER_BEFORE_APP );
     }
 }
 
