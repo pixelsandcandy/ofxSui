@@ -71,7 +71,7 @@ namespace SUI {
         
         {
             updateLock = true;
-            for ( auto& tween : tweens ){
+            for ( Tween* tween : tweens ){
                 if ( tween == NULL ) return;
                 if ( tween->active == true && tween->duration != 0.0 ) tween->update(currTime);
             }
@@ -80,7 +80,7 @@ namespace SUI {
         
         
         {
-            for ( auto tween : tweensToDestroy ){
+            for ( Tween* tween : tweensToDestroy ){
                 destroyTween( tween );
             }
             
